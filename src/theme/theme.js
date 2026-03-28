@@ -33,7 +33,7 @@ export const theme = {
     // Surfaces & Backgrounds: Crisp Whites with subtle cool undertones
     background: {
       DEFAULT: "#fafbff",
-      on: "#1a1a2e",
+      on: "#1c1c1c",
     },
     surface: {
       DEFAULT: "#ffffff",
@@ -44,9 +44,9 @@ export const theme = {
       container: "#f3f4f6",
       high: "#e5e7eb",
       highest: "#d1d5db",
-      "on-surface": "#0f172a", // Darkened for max contrast against white
-      variant: "#334155", // WCAG AA text contrast on white surface
-      "on-variant": "#1e293b",
+      "on-surface": "#191919", // Smooth neutral black for headings
+      variant: "#4d4d4d", // Smooth gray for body text
+      "on-variant": "#2d2d2d",
     },
     // Borders
     outline: {
@@ -56,9 +56,9 @@ export const theme = {
   },
   typography: {
     fonts: {
-      headline: ["Inter", "sans-serif"],
-      body: ["Inter", "sans-serif"],
-      label: ["Inter", "sans-serif"],
+      headline: ["Poppins", "sans-serif"],
+      body: ["Poppins", "sans-serif"],
+      label: ["Poppins", "sans-serif"],
       mono: ["JetBrains Mono", "monospace"],
     },
   },

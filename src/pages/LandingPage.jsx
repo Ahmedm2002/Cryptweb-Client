@@ -8,7 +8,10 @@ export default function LandingPage() {
   return (
     <>
       <Navbar />
-      <main id="main-content" className="relative pt-8 overflow-hidden bg-background">
+      <main
+        id="main-content"
+        className="relative md:pt-8 pt-24 overflow-hidden bg-background"
+      >
         <HeroSection />
         <FeaturesSection />
         <CTASection />

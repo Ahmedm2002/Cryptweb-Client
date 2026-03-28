@@ -1,37 +1,65 @@
 import heroVisual from "../assets/hero-visual.png";
 
 const stats = [
-  { title: "No server uploads.", description: "Direct pipe transfer." },
-  { title: "No storage.", description: "Ephemeral sessions." },
-  { title: "No limits.", description: "Any size, anywhere." },
+  {
+    title: "No server uploads.",
+    description:
+      "Direct peer-to-peer transfer. No middleman, just fast and private.",
+  },
+  {
+    title: "No storage.",
+    description: "Files aren’t stored. Only minimal metrics for reliability.",
+  },
+  {
+    title: "No limits.",
+    description: "Any size. Anyone. Anywhere.",
+  },
 ];
 
 export default function HeroSection() {
   return (
-    <section aria-labelledby="hero-title" className="max-w-7xl mx-auto w-full px-6 md:px-12 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center min-h-[819px]">
+    <section
+      aria-labelledby="hero-title"
+      className="max-w-7xl mx-auto w-full px-6 md:px-12 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center min-h-[819px]"
+    >
       <div className="lg:col-span-7 space-y-8 z-10 pt-4">
-        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-high border border-outline-variant shadow-sm" role="status" aria-live="polite">
-          <span className="w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_var(--color-secondary)]" aria-hidden="true" />
+        <div
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-high border border-outline-variant shadow-sm"
+          role="status"
+          aria-live="polite"
+        >
+          <span
+            className="w-2 h-2 rounded-full bg-secondary shadow-[0_0_8px_var(--color-secondary)]"
+            aria-hidden="true"
+          />
           <span className="text-xs font-mono uppercase tracking-widest text-surface-variant font-semibold">
             Network Status: Live
           </span>
         </div>
 
-        <h1 id="hero-title" className="text-6xl md:text-8xl font-black tracking-tighter text-surface-on-surface leading-[1.05]">
+        <h1
+          id="hero-title"
+          className="text-5xl md:text-6xl font-black text-surface-on-surface leading-[1.05]"
+        >
           Secure, instant <br />
           <span className="text-gradient">file sharing.</span>
         </h1>
 
-        <div className="grid grid-cols-3 gap-4 border-l-2 border-primary-container pl-6">
+        <div className="grid sm:grid-cols-3 grid-cols-1 gap-4">
           {stats.map((stat, i) => (
             <div
               key={stat.title}
-              className={`space-y-1 ${i > 0 ? "border-l border-outline-variant pl-4" : ""}`}
+              className={`
+        rounded-2xl p-4 bg-surface shadow-sm border border-outline-variant
+        
+        sm:bg-transparent sm:shadow-none sm:border-0 sm:rounded-none sm:p-0
+        ${i > 0 ? "sm:border-l sm:pl-4" : ""}
+      `}
             >
               <p className="text-surface-on-surface font-bold text-xl">
                 {stat.title}
               </p>
-              <p className="text-surface-variant text-sm font-medium">
+              <p className="text-surface-variant text-sm font-medium mt-1">
                 {stat.description}
               </p>
             </div>
@@ -44,11 +72,19 @@ export default function HeroSection() {
           privacy and blistering speeds.
         </p>
         <div className="flex flex-wrap gap-4 pt-4">
-          <button aria-label="Start your first secure transfer now" className="bg-gradient-to-br from-primary to-primary-container text-primary-on-primary shadow-button hover:shadow-button-hover font-extrabold px-8 py-4 rounded-xl flex items-center gap-2 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer">
+          <button
+            aria-label="Start your first secure transfer now"
+            className="bg-gradient-to-br from-primary to-primary-container text-primary-on-primary shadow-button hover:shadow-button-hover font-extrabold px-8 py-4 rounded-xl flex items-center gap-2 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
+          >
             Start Transfer Now
-            <span className="material-symbols-outlined" aria-hidden="true">arrow_forward</span>
+            <span className="material-symbols-outlined" aria-hidden="true">
+              arrow_forward
+            </span>
           </button>
-          <button aria-label="Log in to your Curator portal" className="bg-surface border-2 border-outline-variant text-surface-on-surface font-bold px-8 py-4 rounded-xl hover:bg-surface-low hover:border-outline shadow-sm transition-all duration-300 cursor-pointer">
+          <button
+            aria-label="Log in to your Curator portal"
+            className="bg-surface border-2 border-outline-variant text-surface-on-surface font-bold px-8 py-4 rounded-xl hover:bg-surface-low hover:border-outline shadow-sm transition-all duration-300 cursor-pointer"
+          >
             Login to Curator
           </button>
         </div>
@@ -66,7 +102,10 @@ export default function HeroSection() {
             />
           </div>
 
-          <div aria-hidden="true" className="absolute -bottom-8 -left-8 bg-surface-bright p-5 rounded-2xl border border-outline-variant shadow-floating animate-bounce-slow">
+          <div
+            aria-hidden="true"
+            className="absolute -bottom-8 -left-8 bg-surface-bright p-5 rounded-2xl border border-outline-variant shadow-floating animate-bounce-slow"
+          >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center text-secondary-on-container shadow-inner">
                 <span className="material-symbols-outlined text-[28px]">
@@ -75,16 +114,16 @@ export default function HeroSection() {
               </div>
               <div>
                 <p className="text-[11px] uppercase tracking-widest text-surface-variant font-bold mb-1">
-                  Transfer Speed
-                </p>
-                <p className="text-xl font-mono text-surface-on-surface font-bold">
-                  842 MB/s
+                  Faster Transfer Speed
                 </p>
               </div>
             </div>
           </div>
 
-          <div aria-hidden="true" className="absolute top-8 -right-8 bg-surface-bright p-5 rounded-2xl border border-outline-variant shadow-floating">
+          <div
+            aria-hidden="true"
+            className="absolute top-8 -right-8 bg-surface-bright p-5 rounded-2xl border border-outline-variant shadow-floating"
+          >
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center text-primary-on-container shadow-inner">
                 <span className="material-symbols-outlined text-[28px]">
@@ -93,10 +132,7 @@ export default function HeroSection() {
               </div>
               <div>
                 <p className="text-[11px] uppercase tracking-widest text-surface-variant font-bold mb-1">
-                  Encryption
-                </p>
-                <p className="text-xl font-mono text-surface-on-surface font-bold">
-                  AES-256
+                  Encrypted
                 </p>
               </div>
             </div>

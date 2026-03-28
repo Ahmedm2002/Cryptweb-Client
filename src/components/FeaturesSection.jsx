@@ -3,11 +3,14 @@ export default function FeaturesSection() {
     <section
       id="features"
       aria-labelledby="features-title"
-      className="max-w-7xl mx-auto w-full px-6 md:px-12 py-8"
+      className="max-w-7xl mx-auto w-full px-6 md:px-8 py-8"
     >
       {/* Section Header */}
       <div className="mb-16">
-        <h2 id="features-title" className="text-4xl lg:text-5xl font-black text-surface-on-surface tracking-tighter mb-4">
+        <h2
+          id="features-title"
+          className="text-4xl lg:text-5xl font-black text-surface-on-surface mt-4 md:mt-0 tracking-tighter mb-4"
+        >
           Engineered for the Digital Curator.
         </h2>
         <p className="text-surface-variant max-w-2xl text-lg font-medium">
@@ -21,7 +24,10 @@ export default function FeaturesSection() {
         {/* Privacy-first DNA – Large */}
         <div className="md:col-span-8 bg-surface-bright rounded-[2rem] p-10 flex flex-col justify-between group hover:-translate-y-1 transition-all duration-500 overflow-hidden relative shadow-card hover:shadow-card-hover border border-outline-variant/50">
           <div className="z-10">
-            <span className="material-symbols-outlined text-4xl text-secondary mb-6 block drop-shadow-sm" aria-hidden="true">
+            <span
+              className="material-symbols-outlined text-4xl text-secondary mb-6 block drop-shadow-sm"
+              aria-hidden="true"
+            >
               shield_lock
             </span>
             <h3 className="text-3xl font-bold text-surface-on-surface mb-4">
@@ -33,7 +39,10 @@ export default function FeaturesSection() {
               just provide the corridor.
             </p>
           </div>
-          <div aria-hidden="true" className="absolute -right-8 -bottom-8 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-500 text-secondary">
+          <div
+            aria-hidden="true"
+            className="absolute -right-8 -bottom-8 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-500 text-secondary"
+          >
             <span className="material-symbols-outlined text-[280px]">
               security
             </span>
@@ -42,7 +51,10 @@ export default function FeaturesSection() {
 
         {/* Real-time sync – Small */}
         <div className="md:col-span-4 bg-surface-bright rounded-[2rem] p-10 group hover:-translate-y-1 transition-all duration-500 shadow-card hover:shadow-card-hover border border-outline-variant/50">
-          <span className="material-symbols-outlined text-4xl text-primary mb-6 block drop-shadow-sm" aria-hidden="true">
+          <span
+            className="material-symbols-outlined text-4xl text-primary mb-6 block drop-shadow-sm"
+            aria-hidden="true"
+          >
             bolt
           </span>
           <h3 className="text-2xl font-bold text-surface-on-surface mb-4">
@@ -56,7 +68,10 @@ export default function FeaturesSection() {
 
         {/* Future: A/V Calling – Small */}
         <div className="md:col-span-4 bg-surface-bright rounded-[2rem] p-10 group hover:-translate-y-1 transition-all duration-500 shadow-card hover:shadow-card-hover border border-outline-variant/50">
-          <span className="material-symbols-outlined text-4xl text-tertiary mb-6 block drop-shadow-sm" aria-hidden="true">
+          <span
+            className="material-symbols-outlined text-4xl text-tertiary mb-6 block drop-shadow-sm"
+            aria-hidden="true"
+          >
             videocam
           </span>
           <h3 className="text-2xl font-bold text-surface-on-surface mb-3">
@@ -74,7 +89,10 @@ export default function FeaturesSection() {
         {/* No Server Footprint – Medium with Terminal */}
         <div className="md:col-span-8 bg-surface-bright rounded-[2rem] p-10 flex flex-col md:flex-row gap-10 items-center group hover:-translate-y-1 transition-all duration-500 shadow-card hover:shadow-card-hover border border-outline-variant/50 overflow-hidden">
           <div className="flex-1">
-            <span className="material-symbols-outlined text-4xl text-surface-on-surface mb-6 block" aria-hidden="true">
+            <span
+              className="material-symbols-outlined text-4xl text-surface-on-surface mb-6 block"
+              aria-hidden="true"
+            >
               terminal
             </span>
             <h3 className="text-2xl font-bold text-surface-on-surface mb-4">
