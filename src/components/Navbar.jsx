@@ -1,4 +1,5 @@
 const navLinks = ["Features", "Security", "Pricing", "Network"];
+import { Link } from "react-router-dom";
 
 export default function Navbar() {
   return (
@@ -41,7 +42,7 @@ export default function Navbar() {
             aria-label="Get Started with Cryptweb"
             className="bg-gradient-to-br from-primary to-primary-container text-primary-on-primary shadow-button hover:shadow-button-hover font-bold px-6 py-2.5 rounded-xl active:scale-95 transition-all cursor-pointer"
           >
-            Get Started
+            <Link to="/login">Get Started</Link>
           </button>
         </div>
       </div>

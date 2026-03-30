@@ -55,29 +55,17 @@ const SignupPage = () => {
         <div className="absolute top-[10%] right-[10%] w-[40%] h-[40%] bg-secondary/20 rounded-full blur-[120px]"></div>
         <div className="absolute bottom-[10%] left-[5%] w-[30%] h-[30%] bg-primary/10 rounded-full blur-[100px]"></div>
       </div>
-      <div className="fixed inset-0 z-[-1] opacity-5">
-        <img
-          src="/assets/signup_screen.png"
-          alt="Abstract background"
-          className="w-full h-full object-cover mix-blend-overlay grayscale transform -scale-x-100" // Flipped horizontally for visual variance
-        />
-      </div>
 
       <div className="relative z-10 w-full max-w-[440px]">
-        {/* Branding header */}
-        <div className="flex flex-row items-center mb-10 text-center">
-          <div className="w-12 h-12 mb-4 bg-primary text-white rounded-xl flex items-center justify-center shadow-user">
-            <User className="w-6 h-6" />
+        <div className="flex flex-row items-baseline mb-4 text-center mx-auto justify-center">
+          <div className="w-10 h-10 mb-4 bg-primary text-white rounded-xl flex items-center justify-center shadow-user">
+            <Lock className="w-6 h-6" />
           </div>
-          <h1 className="text-3xl font-black tracking-tighter text-on-surface font-headline">
-            Join CryptWeb
+          <h1 className="text-3xl font-black mx-1 tracking-tighter text-on-surface font-headline">
+            CryptWeb
           </h1>
-          <p className="text-surface-variant text-sm mt-2 tracking-wide font-medium uppercase">
-            Create Your Account
-          </p>
         </div>
 
-        {/* Auth Card using light theme */}
         <div className="bg-surface/80 backdrop-blur-2xl border border-outline-variant rounded-2xl p-8 shadow-card">
           <div className="mb-8 text-center">
             <h2 className="text-xl font-bold text-on-surface mb-1">

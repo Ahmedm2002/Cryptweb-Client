@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 export default function CTASection() {
   return (
     <section aria-labelledby="cta-title" className="py-12 md:py-24 relative">
@@ -23,7 +24,7 @@ export default function CTASection() {
               aria-label="Start your free account"
               className="bg-gradient-to-br from-primary to-primary-container text-primary-on-primary shadow-button hover:shadow-button-hover font-black px-12 py-5 rounded-2xl active:scale-95 transition-all duration-300 text-lg cursor-pointer"
             >
-              Get Started Free
+              <Link to="/login">Get Started Free</Link>
             </button>
             <button
               aria-label="Read Cryptweb Documentation"

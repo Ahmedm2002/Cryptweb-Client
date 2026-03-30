@@ -1,4 +1,5 @@
 import heroVisual from "../assets/hero-visual.png";
+import { Link } from "react-router-dom";
 
 const stats = [
   {
@@ -76,16 +77,10 @@ export default function HeroSection() {
             aria-label="Start your first secure transfer now"
             className="bg-gradient-to-br from-primary to-primary-container text-primary-on-primary shadow-button hover:shadow-button-hover font-extrabold px-8 py-4 rounded-xl flex items-center gap-2 hover:-translate-y-0.5 transition-all duration-300 cursor-pointer"
           >
-            Start Transfer Now
+            <Link to="/login">Start Transfer Now</Link>
             <span className="material-symbols-outlined" aria-hidden="true">
               arrow_forward
             </span>
-          </button>
-          <button
-            aria-label="Log in to your Curator portal"
-            className="bg-surface border-2 border-outline-variant text-surface-on-surface font-bold px-8 py-4 rounded-xl hover:bg-surface-low hover:border-outline shadow-sm transition-all duration-300 cursor-pointer"
-          >
-            Login to Curator
           </button>
         </div>
       </div>
