@@ -30,7 +30,25 @@ const LoginPage = () => {
       const { promise } = api.post("/auth/login", { email, password });
       const data = await trackRequest({ promise, abort: () => {} });
 
-      login(data.data.user, data.data.accessToken);
+      const user = data.data.user;
+
+      if (user.verified_at === null || user.verified_at === undefined) {
+        setError(
+          <span>
+            You are not verified. Kindly{" "}
+            <Link
+              to="/verify-email"
+              state={{ email: user.email }}
+              className="text-primary font-bold hover:underline"
+            >
+              verify your email
+            </Link>.
+          </span>
+        );
+        return;
+      }
+
+      login(user, data.data.accessToken);
       navigate("/home");
     } catch (err) {
       if (err.isCanceled) return;
