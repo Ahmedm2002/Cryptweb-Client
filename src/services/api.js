@@ -11,16 +11,12 @@ export class ApiService {
         const config = {
           ...options,
           signal: controller.signal,
+          credentials: "include",
           headers: {
             "Content-Type": "application/json",
             ...options.headers,
           },
         };
-
-        const token = sessionStorage.getItem("accessToken");
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        }
 
         const response = await fetch(`${this.baseURL}${endpoint}`, config);
 

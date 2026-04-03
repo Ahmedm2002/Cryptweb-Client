@@ -14,5 +14,5 @@ export const PublicRoute = () => {
 
   if (isLoading) return null;
 
-  return !isAuthenticated ? <Outlet /> : <Navigate to="/" replace />;
+  return !isAuthenticated ? <Outlet /> : <Navigate to="/home" replace />;
 };

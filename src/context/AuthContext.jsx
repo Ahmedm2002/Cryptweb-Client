@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
+import { api } from "../services/api";
 
 const AuthContext = createContext();
 
@@ -8,29 +9,37 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize from sessionStorage to persist state across refreshes
-    const storedUser = sessionStorage.getItem("user");
-    const storedToken = sessionStorage.getItem("accessToken");
-    
-    if (storedUser && storedToken) {
-      setUser(JSON.parse(storedUser));
-      setAccessToken(storedToken);
-    }
-    setIsLoading(false);
+    let active = true;
+    const fetchSession = async () => {
+      try {
+        const response = await api.get('/user-session/1');
+        if (active && response.success) {
+          setUser(response.data);
+          setAccessToken(Date.now().toString()); // Placeholder value since token is HTTP-only
+        }
+      } catch (error) {
+        if (active) {
+          setUser(null);
+          setAccessToken(null);
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+    fetchSession();
+    return () => { active = false };
   }, []);
 
   const login = (userData, token) => {
     setUser(userData);
     setAccessToken(token);
-    sessionStorage.setItem("user", JSON.stringify(userData));
-    sessionStorage.setItem("accessToken", token);
   };
 
   const logout = () => {
     setUser(null);
     setAccessToken(null);
-    sessionStorage.removeItem("user");
-    sessionStorage.removeItem("accessToken");
   };
 
   return (
