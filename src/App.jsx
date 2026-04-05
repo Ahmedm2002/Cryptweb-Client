@@ -7,21 +7,25 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import HomePage from "./pages/HomePage";
 import { AuthProvider } from "./context/AuthContext";
-import { ProtectedRoute, PublicRoute } from "./components/ProtectedRoute";
+import { ProtectedRoute, GuestOnlyRoute, UnverifiedOnlyRoute } from "./components/ProtectedRoute";
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          <Route element={<PublicRoute />}>
+          <Route element={<GuestOnlyRoute />}>
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
-            <Route path="/verify-email" element={<VerifyEmailPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
           </Route>
+          
+          <Route element={<UnverifiedOnlyRoute />}>
+            <Route path="/verify-email" element={<VerifyEmailPage />} />
+          </Route>
+          
           <Route element={<ProtectedRoute />}>
             <Route path="/home" element={<HomePage />} />
             <Route

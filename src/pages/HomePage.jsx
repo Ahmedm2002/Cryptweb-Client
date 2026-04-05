@@ -1,15 +1,16 @@
-import React from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { LogOut, Home, User, Settings } from 'lucide-react';
+import React from "react";
+import { useAuth } from "../context/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { LogOut, Home, User, Settings } from "lucide-react";
 
 const HomePage = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const currentUser = user?.user || user;
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
   return (
@@ -33,7 +34,7 @@ const HomePage = () => {
           </nav>
         </div>
         <div>
-          <button 
+          <button
             onClick={handleLogout}
             className="flex w-full items-center gap-3 text-red-400 hover:text-white hover:bg-red-500/20 p-3 rounded-lg font-medium transition-colors"
           >
@@ -56,9 +57,13 @@ const HomePage = () => {
 
         <section className="flex-1 overflow-auto p-8">
           <div className="max-w-4xl mx-auto">
-            <h1 className="text-3xl font-bold mb-2">Welcome back, {user?.name || 'User'}!</h1>
-            <p className="text-[#A0A5B1] mb-8">Here is the latest overview for your setup.</p>
-            
+            <h1 className="text-3xl font-bold mb-2">
+              Welcome back, {currentUser?.name || "User"}!
+            </h1>
+            <p className="text-[#A0A5B1] mb-8">
+              Here is the latest overview for your setup.
+            </p>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               {/* Dummy Info Cards */}
               <div className="bg-[#151921] border border-[#2C313C] p-6 rounded-xl">
@@ -68,15 +73,25 @@ const HomePage = () => {
                   <p className="text-xl font-semibold">Active Session</p>
                 </div>
               </div>
-              
+
               <div className="bg-[#151921] border border-[#2C313C] p-6 rounded-xl">
                 <p className="text-sm text-[#A0A5B1] mb-2">Email Address</p>
-                <p className="text-lg font-semibold truncate" title={user?.email}>{user?.email || 'N/A'}</p>
+                <p
+                  className="text-lg font-semibold truncate"
+                  title={currentUser?.email}
+                >
+                  {currentUser?.email || "N/A"}
+                </p>
               </div>
 
               <div className="bg-[#151921] border border-[#2C313C] p-6 rounded-xl md:col-span-2 lg:col-span-1">
                 <p className="text-sm text-[#A0A5B1] mb-2">Account ID</p>
-                <p className="text-lg font-semibold font-mono text-blue-400 truncate" title={user?.id}>{user?.id || 'N/A'}</p>
+                <p
+                  className="text-lg font-semibold font-mono text-blue-400 truncate"
+                  title={currentUser?.id}
+                >
+                  {currentUser?.id || "N/A"}
+                </p>
               </div>
             </div>
 

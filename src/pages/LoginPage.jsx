@@ -42,8 +42,9 @@ const LoginPage = () => {
               className="text-primary font-bold hover:underline"
             >
               verify your email
-            </Link>.
-          </span>
+            </Link>
+            .
+          </span>,
         );
         return;
       }
