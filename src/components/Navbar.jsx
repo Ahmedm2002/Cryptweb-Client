@@ -13,18 +13,18 @@ const Navbar = () => {
         className="w-full border-b border-gray-200 bg-white sticky top-0 z-50"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
+          <div className="flex items-center justify-between h-16 relative">
             <a
               href="#"
               tabIndex={0}
               aria-label="Cryptweb home"
-              className="text-xl font-bold tracking-widest text-gray-900 uppercase focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 rounded"
+              className="text-2xl font-black tracking-tight text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 rounded"
             >
-              Cryptweb
+              CRYPTWEB
             </a>
 
             <div
-              className="hidden lg:flex items-center gap-8"
+              className="hidden lg:flex items-center gap-8 absolute left-1/2 -translate-x-1/2"
               role="menubar"
               aria-label="Site navigation links"
             >
@@ -41,7 +41,7 @@ const Navbar = () => {
                       ? `${item.label} (opens in new tab)`
                       : item.label
                   }
-                  className="text-sm text-gray-600 hover:text-gray-900 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 rounded"
+                  className="text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 rounded"
                 >
                   {item.label}
                 </a>
@@ -105,7 +105,7 @@ const Navbar = () => {
                     : item.label
                 }
                 onClick={() => setOpen(false)}
-                className="py-2.5 text-sm text-gray-700 hover:text-gray-900 border-b border-gray-100 last:border-0 focus:outline-none focus:ring-2 focus:ring-gray-400 rounded"
+                className="py-2.5 text-sm font-semibold text-gray-700 hover:text-gray-900 border-b border-gray-100 last:border-0 focus:outline-none focus:ring-2 focus:ring-gray-400 rounded"
               >
                 {item.label}
               </a>
@@ -113,7 +113,7 @@ const Navbar = () => {
             <div className="pt-3">
               <Button
                 variant="primary"
-                className="w-full justify-center"
+                className=" md:hidden w-full  justify-center"
                 tabIndex={0}
                 aria-label="Get started with Cryptweb"
               >

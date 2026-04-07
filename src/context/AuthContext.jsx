@@ -16,19 +16,7 @@ export const AuthProvider = ({ children }) => {
       }
       setIsInitializing(false);
     }
-  }, [sessionData, sessionLoading]);
-
-  const login = async (email, password) => {
-    const res = await api.post("/login", { email, password });
-    if (res.data.success) {
-      setUser(res.data.data);
-    }
-    return res;
-  };
-
-  const signup = async (email, password) => {
-    return await api.post("/signup", { email, password });
-  };
+  }, [sessionLoading]);
 
   const logout = async () => {
     const res = await api.post("/logout");
@@ -44,8 +32,6 @@ export const AuthProvider = ({ children }) => {
         user,
         loading: isInitializing,
         error: sessionError,
-        login,
-        signup,
         logout,
       }}
     >
