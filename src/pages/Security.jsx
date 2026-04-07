@@ -4,23 +4,26 @@ import { Button } from "../components/Button.jsx";
 
 export const Security = () => {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col text-gray-900 font-sans">
-      <section className="relative overflow-hidden pt-20 pb-24 sm:pt-24 sm:pb-32 px-4 sm:px-6 lg:px-8 border-b border-gray-200 bg-white">
+    <div className="min-h-screen bg-white flex flex-col text-gray-900 font-sans">
+      
+      {/* Hero */}
+      <section id="security-hero" className="relative overflow-hidden pt-20 pb-24 sm:pt-24 sm:pb-32 border-b border-gray-100 bg-white">
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-50/40 via-white to-white"></div>
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl text-center mx-auto">
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-gray-900 mb-6">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-gray-900 mb-5">
               How Cryptweb secures your transfers
             </h1>
-            <p className="text-xl text-gray-600 mb-10 leading-relaxed font-medium">
+            <p className="text-lg text-gray-600 mb-8 leading-relaxed font-medium">
               We believe privacy is a fundamental right. Cryptweb creates a secure peer-to-peer data tunnel, ensuring your files never rest on our servers.
             </p>
           </div>
         </div>
       </section>
 
-      <section className="py-20 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+      {/* Architecture */}
+      <section id="architecture" className="py-20 bg-gray-50 border-b border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <div className="inline-flex items-center gap-2 text-indigo-600 font-bold tracking-wide uppercase text-sm mb-4">
@@ -47,7 +50,7 @@ export const Security = () => {
               </ul>
             </div>
             
-            <div className="bg-white p-8 sm:p-12 rounded-3xl shadow-sm border border-gray-200 relative">
+            <div className="bg-white p-8 sm:p-12 rounded-3xl shadow-md border border-gray-100 relative">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-6 relative z-10">
                 <div className="w-24 h-24 bg-gray-50 border border-gray-200 rounded-2xl flex flex-col items-center justify-center shadow-sm">
                   <div className="w-10 h-10 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-600 mb-2">
@@ -71,14 +74,15 @@ export const Security = () => {
                   <span className="text-xs font-bold text-gray-600">Receiver</span>
                 </div>
               </div>
-              <div className="absolute inset-0 bg-gradient-to-tr from-white to-transparent opacity-50 rounded-3xl pointer-events-none" />
+              <div className="absolute inset-0 bg-gradient-to-tr from-indigo-50/20 to-transparent opacity-50 rounded-3xl pointer-events-none" />
             </div>
           </div>
         </div>
       </section>
 
-      <section className="py-20 bg-gray-900 border-t-8 border-indigo-600 text-white px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
+      {/* Zero Knowledge */}
+      <section id="zero-knowledge" className="py-24 bg-gray-900 border-t-8 border-indigo-600 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
               Zero-Knowledge Verification
@@ -88,21 +92,21 @@ export const Security = () => {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="bg-white/5 border border-white/10 p-8 rounded-2xl">
+            <div className="bg-white/5 border border-white/10 p-8 rounded-3xl hover:bg-white/10 transition-colors">
               <EyeOff size={32} className="text-indigo-400 mb-4" />
               <h3 className="text-xl font-bold text-white mb-2">No Content Logging</h3>
               <p className="text-gray-400 font-medium leading-relaxed">
                 Your transfer data is logically invisible to our systems. We track bandwidth metrics purely for platform stability.
               </p>
             </div>
-             <div className="bg-white/5 border border-white/10 p-8 rounded-2xl">
+             <div className="bg-white/5 border border-white/10 p-8 rounded-3xl hover:bg-white/10 transition-colors">
               <Shield size={32} className="text-indigo-400 mb-4" />
               <h3 className="text-xl font-bold text-white mb-2">In-Browser Cryptography</h3>
               <p className="text-gray-400 font-medium leading-relaxed">
                 Files are broken into chunks and encrypted locally within your browser using WebCrypto API before transmission.
               </p>
             </div>
-             <div className="bg-white/5 border border-white/10 p-8 rounded-2xl">
+             <div className="bg-white/5 border border-white/10 p-8 rounded-3xl hover:bg-white/10 transition-colors">
               <Server size={32} className="text-indigo-400 mb-4" />
               <h3 className="text-xl font-bold text-white mb-2">Direct Connections</h3>
               <p className="text-gray-400 font-medium leading-relaxed">
@@ -113,18 +117,48 @@ export const Security = () => {
         </div>
       </section>
 
-      <section className="py-24 bg-indigo-50 border-t border-indigo-100 flex-grow px-4 sm:px-6 lg:px-8">
-        <div className="max-w-4xl mx-auto text-center space-y-8">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">
-            Ready for a secure transfer?
-          </h2>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
-            <Link to="/">
-               <Button variant="primary" className="px-8 py-4 text-lg w-full sm:w-auto font-bold">Start Sharing</Button>
-            </Link>
+      {/* CTA */}
+      <section id="security-cta" className="py-24 bg-indigo-50 border-t border-indigo-100 flex-grow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-4xl mx-auto text-center space-y-8">
+            <h2 className="text-4xl sm:text-5xl font-bold tracking-tight text-gray-900">
+              Ready for a secure transfer?
+            </h2>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+              <Link to="/" className="w-full sm:w-auto">
+                 <Button variant="primary" className="px-10 py-5 text-xl w-full font-bold rounded-full shadow-md hover:shadow-lg">Start Sharing Securely</Button>
+              </Link>
+            </div>
           </div>
         </div>
       </section>
+      
+      {/* Footer */}
+      <footer id="footer" className="bg-white py-12 border-t border-gray-100">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="text-2xl font-black tracking-tight text-gray-900">
+            CRYPTWEB<span className="text-indigo-600">.</span>
+          </div>
+          <p className="text-gray-500 text-sm font-medium">
+            © {new Date().getFullYear()} Cryptweb. Secure file sharing. All
+            rights reserved.
+          </p>
+          <div className="flex gap-6">
+            <Link
+              to="#"
+              className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              to="#"
+              className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
+            >
+              Terms of Service
+            </Link>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 };

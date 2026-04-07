@@ -1,7 +1,6 @@
 export const Button = ({
   variant = "primary",
   children,
-  onClick,
   type = "button",
   className = "",
   disabled,
@@ -19,7 +18,6 @@ export const Button = ({
   return (
     <button
       type={type}
-      onClick={onClick}
       disabled={disabled}
       className={`${baseStyles} ${variants[variant] || variants.primary} ${className}`}
     >
