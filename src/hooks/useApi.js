@@ -19,21 +19,21 @@ export const useApi = (endpointOrFunction, dependencies = []) => {
         if (typeof endpointOrFunction === 'function') {
           response = await endpointOrFunction();
         } else {
-          response = await api(endpointOrFunction);
+          response = await api.get(endpointOrFunction);
         }
         
         if (isMounted) {
-          if (response.data.success) {
-            setData(response.data.data);
+          if (typeof response === "string") {
+             setError(response);
+          } else if (response && response.success !== false) {
+             setData(response.data || response.user || response);
           } else {
-            setError(response.data.message || response.data.errors || "Unknown error");
+             setError(response?.message || response?.errors || "Unknown error");
           }
         }
       } catch (err) {
         if (isMounted) {
           setError(
-            err.response?.data?.message || 
-            err.response?.data?.errors || 
             err.message || 
             "An error occurred"
           );

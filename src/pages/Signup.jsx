@@ -20,15 +20,17 @@ export const Signup = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await signup(email, password);
-      if (res.data.success) {
+      const res = await signup(email, password, name);
+      if (typeof res === "string") {
+         setError(res);
+      } else if (res && res.success !== false) {
         navigate("/login", { state: { email, password } });
       } else {
-        setError(res.data.message || "Failed to create account");
+        setError(res?.message || "Failed to create account");
       }
     } catch (err) {
       setError(
-        err.response?.data?.message || err.message || "An error occurred",
+        err.message || "An error occurred",
       );
     } finally {
       setLoading(false);

@@ -25,13 +25,15 @@ export const Login = () => {
     setError(null);
     try {
       const res = await login(email, password);
-      if (res.data.success) {
-        navigate("/home");
+      if (typeof res === "string") {
+         setError(res);
+      } else if (res && res.success !== false) {
+         navigate("/home");
       } else {
-        setError(res.data.message || "Invalid credentials");
+         setError(res?.message || "Invalid credentials");
       }
     } catch (err) {
-      setError(err.response?.data?.message || err.message || "An error occurred");
+      setError(err.message || "An error occurred");
     } finally {
       setLoading(false);
     }

@@ -1,26 +1,33 @@
 import { createContext, useState, useEffect } from "react";
-import { useApi } from "../hooks/useApi";
 import { api } from "../services/api";
 
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const [sessionData, sessionLoading, sessionError] = useApi("/user-session/1");
   const [user, setUser] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  useEffect(() => {
-    if (!sessionLoading) {
-      if (sessionData) {
-        setUser(sessionData);
+  const checkSession = async () => {
+    try {
+      const res = await api.get("/user-session/1");
+      if (typeof res !== "string" && res && res.success) {
+        setUser(res.data?.user || res.data);
+      } else {
+        setUser(null);
       }
+    } catch (error) {
+      setUser(null);
+    } finally {
       setIsInitializing(false);
     }
-  }, [sessionLoading]);
+  };
+  useEffect(() => {
+    checkSession();
+  }, []);
 
   const logout = async () => {
     const res = await api.post("/logout");
-    if (res.data.success) {
+    if (res && res.success && typeof res !== "string") {
       setUser(null);
     }
     return res;
@@ -31,7 +38,6 @@ export const AuthProvider = ({ children }) => {
       value={{
         user,
         loading: isInitializing,
-        error: sessionError,
         logout,
       }}
     >
