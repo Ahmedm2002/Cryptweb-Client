@@ -1,27 +1,62 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import menu from "../../data/menu";
 import { Button } from "../components/Button.jsx";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+  const buttonRef = useRef(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (open) setOpen(false);
+    };
+
+    const handleOutsideInteraction = (event) => {
+      if (
+        open &&
+        menuRef.current &&
+        !menuRef.current.contains(event.target) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    if (open) {
+      window.addEventListener("scroll", handleScroll, { passive: true });
+      document.addEventListener("mousedown", handleOutsideInteraction);
+      document.addEventListener("touchstart", handleOutsideInteraction, {
+        passive: true,
+      });
+    }
+
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("mousedown", handleOutsideInteraction);
+      document.removeEventListener("touchstart", handleOutsideInteraction);
+    };
+  }, [open]);
 
   return (
     <>
       <nav
         role="navigation"
         aria-label="Main navigation"
-        className="w-full border-b border-gray-200 bg-white sticky top-0 z-50"
+        className="w-full border-b border-gray-200 bg-white sticky top-0 z-50 transition-all duration-300"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 relative">
-            <a
-              href="#"
+          <div className="flex items-center justify-between h-16 relative bg-white z-20">
+            <Link
+              to="/"
               tabIndex={0}
               aria-label="Cryptweb home"
               className="text-2xl font-black tracking-tight text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 rounded"
             >
               CRYPTWEB
-            </a>
+            </Link>
 
             <div
               className="hidden lg:flex items-center gap-8 absolute left-1/2 -translate-x-1/2"
@@ -29,36 +64,32 @@ const Navbar = () => {
               aria-label="Site navigation links"
             >
               {menu.map((item) => (
-                <a
+                <Link
                   key={item.label}
-                  href={item.href}
+                  to={item.href}
                   role="menuitem"
                   tabIndex={0}
-                  target={item.external ? "_blank" : undefined}
-                  rel={item.external ? "noopener noreferrer" : undefined}
-                  aria-label={
-                    item.external
-                      ? `${item.label} (opens in new tab)`
-                      : item.label
-                  }
                   className="text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 rounded"
                 >
                   {item.label}
-                </a>
+                </Link>
               ))}
             </div>
 
             <div className="hidden lg:flex">
-              <Button
-                variant="primary"
-                tabIndex={0}
-                aria-label="Get started with Cryptweb"
-              >
-                Get Started
-              </Button>
+              <Link to="/signup">
+                <Button
+                  variant="primary"
+                  tabIndex={0}
+                  aria-label="Get started with Cryptweb"
+                >
+                  Get Started
+                </Button>
+              </Link>
             </div>
 
             <button
+              ref={buttonRef}
               className="lg:hidden flex flex-col justify-center items-center gap-1.5 w-9 h-9 rounded-md hover:bg-gray-100 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-gray-400"
               onClick={() => setOpen((prev) => !prev)}
               aria-expanded={open}
@@ -84,44 +115,33 @@ const Navbar = () => {
           </div>
         </div>
 
-        {open && (
-          <div
-            id="mobile-menu"
-            role="menu"
-            aria-label="Mobile navigation"
-            className="lg:hidden border-t border-gray-100 bg-white px-4 pb-4 pt-2 flex flex-col gap-1"
-          >
+        {/* Mobile Dropdown Wrapper with Smooth Transitions */}
+        <div
+          ref={menuRef}
+          id="mobile-menu"
+          role="menu"
+          aria-label="Mobile navigation"
+          className={`lg:hidden bg-white w-full overflow-hidden transition-all duration-300 ease-in-out absolute left-0 ${
+            open
+              ? "max-h-[400px] border-b border-gray-100 shadow-xl opacity-100"
+              : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="px-4 pb-6 pt-2 flex flex-col gap-2">
             {menu.map((item) => (
-              <a
+              <Link
                 key={item.label}
-                href={item.href}
+                to={item.href}
                 role="menuitem"
                 tabIndex={0}
-                target={item.external ? "_blank" : undefined}
-                rel={item.external ? "noopener noreferrer" : undefined}
-                aria-label={
-                  item.external
-                    ? `${item.label} (opens in new tab)`
-                    : item.label
-                }
                 onClick={() => setOpen(false)}
-                className="py-2.5 text-sm font-semibold text-gray-700 hover:text-gray-900 border-b border-gray-100 last:border-0 focus:outline-none focus:ring-2 focus:ring-gray-400 rounded"
+                className="py-3 text-[15px] font-semibold text-gray-700 hover:text-gray-900 border-b border-gray-100 last:border-0 focus:outline-none focus:ring-2 focus:ring-gray-400 rounded px-2"
               >
                 {item.label}
-              </a>
+              </Link>
             ))}
-            <div className="pt-3">
-              <Button
-                variant="primary"
-                className=" md:hidden w-full  justify-center"
-                tabIndex={0}
-                aria-label="Get started with Cryptweb"
-              >
-                Get Started
-              </Button>
-            </div>
           </div>
-        )}
+        </div>
       </nav>
     </>
   );

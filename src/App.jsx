@@ -12,6 +12,7 @@ import { Product } from "./pages/Product.jsx";
 import { Home } from "./pages/Home.jsx";
 import { Login } from "./pages/Login.jsx";
 import { Signup } from "./pages/Signup.jsx";
+import { Security } from "./pages/Security.jsx";
 
 const AuthRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -67,6 +68,7 @@ const AppContent = () => {
               </AuthRoute>
             }
           />
+          <Route path="/security" element={<Security />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
