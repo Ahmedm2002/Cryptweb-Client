@@ -13,10 +13,9 @@ import {
 export const Product = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col text-gray-900">
-      
       <section
         id="hero"
-        className="relative overflow-hidden pt-24 pb-32 sm:pt-16 sm:pb-16 border-b border-gray-100"
+        className="relative overflow-hidden pt-24 pb-32 sm:pt-32 sm:pb-40 border-b border-gray-100"
       >
         <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-indigo-50/50 via-white to-white"></div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -57,7 +56,6 @@ export const Product = () => {
                 <div className="absolute inset-0 bg-white/40 backdrop-blur-3xl rounded-[3rem] border border-white/60 shadow-2xl -z-10"></div>
 
                 <div className="w-full flex items-center justify-between px-6 sm:px-12 relative z-10">
-                  
                   <div className="w-28 h-36 bg-white border border-gray-100 shadow-lg rounded-2xl flex flex-col items-center justify-center gap-3 relative transform hover:-translate-y-2 transition-transform duration-300">
                     <UploadCloud className="text-gray-400" size={32} />
                     <div className="h-2 w-12 bg-gray-200 rounded-full"></div>
@@ -66,7 +64,6 @@ export const Product = () => {
                     </div>
                   </div>
 
-                  
                   <div className="flex-1 relative mx-4">
                     <div className="h-1.5 bg-indigo-100 w-full rounded-full overflow-hidden">
                       <div className="h-full bg-indigo-500 w-1/2 animate-pulse rounded-full"></div>
@@ -76,7 +73,6 @@ export const Product = () => {
                     </div>
                   </div>
 
-                  
                   <div className="w-28 h-36 bg-white border border-gray-100 shadow-lg rounded-2xl flex flex-col items-center justify-center gap-3 relative transform hover:-translate-y-2 transition-transform duration-300">
                     <Users className="text-gray-400" size={32} />
                     <div className="h-2 w-12 bg-gray-200 rounded-full"></div>
@@ -88,7 +84,6 @@ export const Product = () => {
         </div>
       </section>
 
-      
       <section
         id="features"
         className="py-24 bg-gray-50 border-b border-gray-100 relative"
@@ -147,7 +142,6 @@ export const Product = () => {
         </div>
       </section>
 
-      
       <section id="how-it-works" className="py-24 border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col lg:flex-row gap-16">
@@ -200,7 +194,6 @@ export const Product = () => {
         </div>
       </section>
 
-      
       <section
         id="privacy"
         className="py-24 bg-gray-900 text-white border-t-[8px] border-indigo-600"
@@ -242,7 +235,6 @@ export const Product = () => {
         </div>
       </section>
 
-      
       <section
         id="cta"
         className="py-24 bg-indigo-50 border-b border-indigo-100"
@@ -268,7 +260,6 @@ export const Product = () => {
         </div>
       </section>
 
-      
       <footer id="footer" className="bg-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="text-2xl font-black tracking-tight text-gray-900">
