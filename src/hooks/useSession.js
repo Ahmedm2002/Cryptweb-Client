@@ -8,8 +8,10 @@ export const useSession = () => {
   const [isMounted, setIsMounted] = useState(true);
 
   async function fetchSessions() {
+    const controller = new AbortController();
+    const signal = controller.signal;
     try {
-      const res = await api.get("/user-session/all");
+      const res = await api.get("/user-session/all", { signal });
       if (isMounted) {
         if (res && res.success) {
           setSessions(res.data || []);
@@ -31,6 +33,7 @@ export const useSession = () => {
 
     return () => {
       setIsMounted(false);
+      controller.abort();
     };
   }, []);
 

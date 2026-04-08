@@ -8,6 +8,8 @@ export const AuthProvider = ({ children }) => {
   const [isInitializing, setIsInitializing] = useState(true);
 
   const checkSession = async () => {
+    const controller = new AbortController();
+    const signal = controller.signal;
     const token = document.cookie.split("=")[1];
     if (!token) {
       setIsInitializing(false);
@@ -16,7 +18,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     try {
-      const res = await api.get("/user-session/1");
+      const res = await api.get("/user-session/1", { signal });
       if (res && res.success) {
         setUser(res.data?.user || res.data);
       } else {
@@ -30,6 +32,9 @@ export const AuthProvider = ({ children }) => {
   };
   useEffect(() => {
     checkSession();
+    return () => {
+      controller.abort();
+    };
   }, []);
 
   async function signup(name, email, password) {
