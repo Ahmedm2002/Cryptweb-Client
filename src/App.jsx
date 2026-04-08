@@ -3,23 +3,21 @@ import {
   Routes,
   Route,
   Navigate,
-  useLocation
+  useLocation,
 } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { useAuth } from "./hooks/useAuth";
 import Navbar from "./components/Navbar.jsx";
 import { Loader } from "./components/Loader.jsx";
 import { Product } from "./pages/Product.jsx";
-import { Home } from "./pages/Home.jsx";
 import { Login } from "./pages/Login.jsx";
 import { Signup } from "./pages/Signup.jsx";
 import { VerifyEmail } from "./pages/VerifyEmail.jsx";
 import { Security } from "./pages/Security.jsx";
+import { Dashboard } from "./pages/Dashboard.jsx";
 
 const AuthRoute = ({ children }) => {
   const { user, loading } = useAuth();
-  const location = useLocation();
-
   if (loading) return <Loader />;
   if (!user) return <Navigate to="/login" replace />;
   return children;
@@ -32,13 +30,24 @@ const GuestRoute = ({ children }) => {
   return children;
 };
 
+const ConditionalNavbar = ({ menuItems }) => {
+  const location = useLocation();
+  const hideNavbarRoutes = ["/home", "/profile", "/settings"];
+  const shouldHide = hideNavbarRoutes.some((path) =>
+    location.pathname.startsWith(path)
+  );
+
+  if (shouldHide) return null;
+  return <Navbar menuItems={menuItems} />;
+};
+
 const AppContent = () => {
   const menuItems = [{ title: "Home", link: "/home" }];
 
   return (
     <Router>
-      <div className="font-sans antialiased text-gray-900">
-        <Navbar menuItems={menuItems} />
+      <div className="font-sans antialiased text-gray-900 bg-gray-50 min-h-screen">
+        <ConditionalNavbar menuItems={menuItems} />
         <Routes>
           <Route
             path="/"
@@ -68,7 +77,23 @@ const AppContent = () => {
             path="/home"
             element={
               <AuthRoute>
-                <Home />
+                <Dashboard />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <AuthRoute>
+                <Dashboard />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <AuthRoute>
+                <Dashboard />
               </AuthRoute>
             }
           />
