@@ -8,8 +8,8 @@ export const AuthProvider = ({ children }) => {
   const [isInitializing, setIsInitializing] = useState(true);
 
   const checkSession = async () => {
-    const match = document.cookie.match(new RegExp("(^| )accessToken=([^;]+)"));
-    if (!match || !match[2]) {
+    const token = document.cookie.split("=")[1];
+    if (!token) {
       setIsInitializing(false);
       setUser(null);
       return;

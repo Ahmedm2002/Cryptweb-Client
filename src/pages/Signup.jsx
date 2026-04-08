@@ -16,7 +16,8 @@ export const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (password !== confirmPassword) return setError("Passwords do not match");
-
+    if (!email || !name || !password || !confirmPassword)
+      return setError("All fields are required");
     setLoading(true);
     setError(null);
     try {
