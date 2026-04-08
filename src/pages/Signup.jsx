@@ -35,8 +35,8 @@ export const Signup = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50 flex-col">
-      <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-sm border border-gray-100">
+    <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center sm:py-6 sm:px-6 lg:px-8 bg-gray-50 flex-col">
+      <div className="sm:max-w-md w-full space-y-8 bg-white p-10 sm:rounded-3xl shadow-sm border border-gray-100">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
             Register
@@ -118,7 +118,7 @@ export const Signup = () => {
               />
             </div>
           </div>
-          <div className="pt-2">
+          <div className="pt-2 flex flex-wrap flex-col gap-4">
             <Button
               type="submit"
               variant="primary"
@@ -128,6 +128,31 @@ export const Signup = () => {
             >
               {loading ? "Creating account..." : "Sign up"}
             </Button>
+
+            <button className="w-full flex items-center justify-center gap-3 bg-surface-container hover:bg-surface-container-high transition-colors py-3 px-4 rounded-lg text-sm font-medium border border-outline-variant mb-6 group text-on-surface outline-none">
+              <svg
+                className="w-5 h-5 group-hover:scale-110 transition-transform"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M12 5.04c1.94 0 3.51.68 4.75 1.74l3.55-3.55C18.1 1.21 15.24 0 12 0 7.31 0 3.25 2.67 1.15 6.61l4.13 3.2C6.22 7.02 8.87 5.04 12 5.04z"
+                  fill="#EA4335"
+                ></path>
+                <path
+                  d="M23.49 12.27c0-.8-.07-1.56-.19-2.27H12v4.51h6.47c-.28 1.48-1.13 2.74-2.4 3.58l3.74 2.91c2.18-2.02 3.48-5 3.48-8.73z"
+                  fill="#4285F4"
+                ></path>
+                <path
+                  d="M5.28 14.19c-.24-.72-.37-1.49-.37-2.19 0-.71.13-1.47.37-2.19L1.15 6.61C.42 8.23 0 10.06 0 12s.42 3.77 1.15 5.39l4.13-3.2z"
+                  fill="#FBBC05"
+                ></path>
+                <path
+                  d="M12 24c3.24 0 5.97-1.07 7.96-2.91l-3.74-2.91c-1.1.74-2.51 1.18-4.22 1.18-3.13 0-5.78-2.08-6.73-4.88l-4.13 3.2C3.25 21.33 7.31 24 12 24z"
+                  fill="#34A853"
+                ></path>
+              </svg>
+              Continue with Google
+            </button>
           </div>
         </form>
         <div className="text-sm text-center mt-8">
