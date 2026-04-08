@@ -1,26 +1,26 @@
-import { useState } from "react";
 import { useAuth } from "../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import { Banner } from "../components/Banner";
-import { Popup } from "../components/Popup";
 import { Button } from "../components/Button";
 
 export const Home = () => {
   const { user } = useAuth();
-  const [showVerifyPopup, setShowVerifyPopup] = useState(false);
-
-  const isVerified = user?.verified !== false;
+  const navigate = useNavigate();
 
   return (
     <div className="min-h-[calc(100vh-5rem)] bg-gray-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        {!isVerified && (
+        {user?.verified_at == null && (
           <Banner
-            text="Your account is not verified. Please verify your email to unlock all features."
-            buttonText="Verify Now"
-            onClick={() => setShowVerifyPopup(true)}
+            text="Please verify your email to enable all features."
+            buttonText="Verify Email"
+            onClick={() =>
+              navigate("/verify-email", {
+                state: { email: user?.email, otpSent: false },
+              })
+            }
           />
         )}
-
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-10">
             <h1 className="text-3xl font-extrabold text-gray-900 mb-2 tracking-tight">
@@ -60,41 +60,6 @@ export const Home = () => {
           </div>
         </div>
       </div>
-
-      {showVerifyPopup && (
-        <Popup onClose={() => setShowVerifyPopup(false)}>
-          <div className="text-center">
-            <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg
-                className="w-8 h-8"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4 tracking-tight">
-              Verify Email
-            </h2>
-            <p className="text-gray-600 mb-8">
-              A verification link has been sent to your email address.
-            </p>
-            <Button
-              variant="primary"
-              className="w-full py-4 text-lg"
-              onClick={() => setShowVerifyPopup(false)}
-            >
-              Got it
-            </Button>
-          </div>
-        </Popup>
-      )}
     </div>
   );
 };

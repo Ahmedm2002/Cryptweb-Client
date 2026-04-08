@@ -3,6 +3,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation
 } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { useAuth } from "./hooks/useAuth";
@@ -12,10 +13,13 @@ import { Product } from "./pages/Product.jsx";
 import { Home } from "./pages/Home.jsx";
 import { Login } from "./pages/Login.jsx";
 import { Signup } from "./pages/Signup.jsx";
+import { VerifyEmail } from "./pages/VerifyEmail.jsx";
 import { Security } from "./pages/Security.jsx";
 
 const AuthRoute = ({ children }) => {
   const { user, loading } = useAuth();
+  const location = useLocation();
+
   if (loading) return <Loader />;
   if (!user) return <Navigate to="/login" replace />;
   return children;
@@ -65,6 +69,14 @@ const AppContent = () => {
             element={
               <AuthRoute>
                 <Home />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/verify-email"
+            element={
+              <AuthRoute>
+                <VerifyEmail />
               </AuthRoute>
             }
           />

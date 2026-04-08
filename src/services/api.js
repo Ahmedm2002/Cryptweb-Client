@@ -1,11 +1,49 @@
 import axios from "axios";
-
 class Api {
   constructor() {
     this.axios = axios.create({
       baseURL: import.meta.env.VITE_API_BASE_URL || "/",
       withCredentials: true,
     });
+
+    this.axios.interceptors.request.use((config) => {
+      const match = document.cookie.match(
+        new RegExp("(^| )accessToken=([^;]+)"),
+      );
+      if (match && match[2]) {
+        config.headers.Authorization = `Bearer ${match[2]}`;
+      }
+      return config;
+    });
+
+    this.axios.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        const originalRequest = error.config;
+        
+        if (
+          error.response &&
+          error.response.status === 401 &&
+          !originalRequest._retry &&
+          !originalRequest.url.includes("/get-access-token")
+        ) {
+          originalRequest._retry = true;
+          try {
+            await this.axios.post("/user-session/get-access-token");
+            
+            const match = document.cookie.match(new RegExp('(^| )accessToken=([^;]+)'));
+            if (match && match[2]) {
+              originalRequest.headers.Authorization = `Bearer ${match[2]}`;
+            }
+            
+            return this.axios(originalRequest);
+          } catch (refreshError) {
+            return Promise.reject(refreshError);
+          }
+        }
+        return Promise.reject(error);
+      }
+    );
   }
 
   async get(url, config = {}) {

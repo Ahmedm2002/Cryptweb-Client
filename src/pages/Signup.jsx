@@ -20,18 +20,14 @@ export const Signup = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await signup(email, password, name);
-      if (typeof res === "string") {
-         setError(res);
-      } else if (res && res.success !== false) {
-        navigate("/login", { state: { email, password } });
+      const res = await signup(name, email, password);
+      if (res && res.success) {
+        navigate("/verify-email", { state: { email, otpSent: true } });
       } else {
-        setError(res?.message || "Failed to create account");
+        setError(res?.message || "Registration failed");
       }
     } catch (err) {
-      setError(
-        err.message || "An error occurred",
-      );
+      setError(err?.message || "An error occurred during registration");
     } finally {
       setLoading(false);
     }
@@ -127,7 +123,7 @@ export const Signup = () => {
               variant="primary"
               className="w-full flex justify-center py-3 text-[15px]"
               disabled={loading}
-              onClick={handleSubmit}
+              onClick={(e) => handleSubmit(e)}
             >
               {loading ? "Creating account..." : "Sign up"}
             </Button>
