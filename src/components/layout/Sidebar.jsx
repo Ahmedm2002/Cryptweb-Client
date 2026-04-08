@@ -12,7 +12,6 @@ export const Sidebar = ({ isMobileOpen, setMobileOpen, onLogoutConfirm }) => {
 
   return (
     <>
-      {/* Mobile overlay */}
       {isMobileOpen && (
         <div
           className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-40 lg:hidden transition-opacity"
@@ -20,7 +19,6 @@ export const Sidebar = ({ isMobileOpen, setMobileOpen, onLogoutConfirm }) => {
         />
       )}
 
-      {/* Sidebar Content */}
       <aside
         className={`fixed lg:sticky top-0 lg:top-0 left-0 h-screen lg:h-[calc(100vh-4rem)] w-64 bg-white border-r border-gray-200 flex flex-col transition-transform duration-300 ease-in-out z-50 lg:translate-x-0 ${
           isMobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"

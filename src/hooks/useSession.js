@@ -5,34 +5,32 @@ export const useSession = () => {
   const [sessions, setSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isMounted, setIsMounted] = useState(true);
+
+  async function fetchSessions() {
+    try {
+      const res = await api.get("/user-session/all");
+      if (isMounted) {
+        if (res && res.success) {
+          setSessions(res.data || []);
+        } else {
+          setError(res?.message || "Failed to load sessions");
+        }
+      }
+    } catch (err) {
+      if (isMounted) {
+        setError(err?.message || "Error loading sessions");
+      }
+    } finally {
+      if (isMounted) setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    let isMounted = true;
-
-    const fetchSessions = async () => {
-      try {
-        const res = await api.get("/user-session/all");
-        console.log("User session res: ", res);
-        if (isMounted) {
-          if (res && res.success) {
-            setSessions(res.data || []);
-          } else {
-            setError(res?.message || "Failed to load sessions");
-          }
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err?.message || "Error loading sessions");
-        }
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-
     fetchSessions();
 
     return () => {
-      isMounted = false;
+      setIsMounted(false);
     };
   }, []);
 

@@ -23,7 +23,7 @@ export const Home = () => {
         )}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
           <div className="p-10">
-            <h1 className="text-3xl font-extrabold text-gray-900 mb-2 tracking-tight">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 tracking-tight">
               Dashboard
             </h1>
             <p className="text-lg text-gray-500 mb-10">

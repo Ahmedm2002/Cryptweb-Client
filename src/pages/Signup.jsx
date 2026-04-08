@@ -38,7 +38,7 @@ export const Signup = () => {
     <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50 flex-col">
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-3xl shadow-sm border border-gray-100">
         <div className="text-center">
-          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+          <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
             Register
           </h2>
           <p className="mt-2 text-sm text-gray-500">

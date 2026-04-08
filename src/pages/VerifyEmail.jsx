@@ -89,7 +89,7 @@ export const VerifyEmail = () => {
                 </svg>
               </div>
             </div>
-            <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
               Email Verified!
             </h2>
             <p className="text-gray-500">
@@ -118,7 +118,7 @@ export const VerifyEmail = () => {
                 </svg>
               </div>
             </div>
-            <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
               Verify your email
             </h2>
             <p className="text-gray-500 text-sm mb-8">
@@ -169,7 +169,7 @@ export const VerifyEmail = () => {
                 </svg>
               </div>
             </div>
-            <h2 className="text-2xl font-extrabold text-gray-900 tracking-tight">
+            <h2 className="text-2xl font-bold text-gray-900 tracking-tight">
               Enter OTP
             </h2>
             <p className="text-gray-500 text-sm">

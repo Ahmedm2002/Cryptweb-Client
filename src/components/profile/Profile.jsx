@@ -6,13 +6,12 @@ export const Profile = () => {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Profile Details */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8">
         <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-5xl flex-shrink-0 shadow-inner">
           {(user?.name || "U").charAt(0).toUpperCase()}
         </div>
         <div className="text-center sm:text-left pt-2">
-          <h2 className="text-3xl font-extrabold text-gray-900 tracking-tight">
+          <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
             {user?.name}
           </h2>
           <p className="text-gray-500 font-medium text-lg mt-1">
@@ -32,9 +31,8 @@ export const Profile = () => {
         </div>
       </div>
 
-      {/* Session List */}
       <div>
-        <h3 className="text-2xl font-extrabold text-gray-900 mb-6 tracking-tight">
+        <h3 className="text-2xl font-bold text-gray-900 mb-6 tracking-tight">
           Active Sessions
         </h3>
         <SessionList />

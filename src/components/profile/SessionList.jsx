@@ -39,9 +39,6 @@ export const SessionList = () => {
                 {session.device_type.os + " - " + session.device_type.browser ||
                   "Unknown Device"}
               </h4>
-              <p className="text-sm text-gray-500 font-medium mt-1">
-                Session ID: <span className="font-mono">{session.id}</span>
-              </p>
             </div>
             <div className="flex items-center gap-2">
               <span className="px-3 py-1 bg-green-50 text-green-700 text-xs font-bold rounded-full uppercase tracking-wider">
@@ -49,12 +46,12 @@ export const SessionList = () => {
               </span>
             </div>
           </div>
-          <div className="mt-5 pt-4 border-t border-gray-50 flex items-center gap-6 text-xs text-gray-400 font-medium">
+          <div className="mt-2 pt-2 border-t border-gray-50 flex items-center gap-6 text-xs text-gray-400 font-medium">
             <span>
               Started:{" "}
-              {new Date(session.created_at || Date.now()).toLocaleDateString()}
+              {new Date(session.created_at || Date.now()).toLocaleString()}
             </span>
-            {session.ip_address && <span>IP: {session.ip_address}</span>}
+            {/* {session.ip_address && <span>IP: {session.ip_address}</span>} */}
           </div>
         </div>
       ))}

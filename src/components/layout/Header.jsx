@@ -52,26 +52,30 @@ export const Header = ({ onLogoutConfirm, onMenuClick }) => {
           </div>
         </button>
 
-        {dropdownOpen && (
-          <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-100 shadow-xl rounded-xl py-2 z-50 overflow-hidden text-left">
-            <Link
-              to="/home"
-              onClick={() => setDropdownOpen(false)}
-              className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Settings
-            </Link>
-            <button
-              onClick={() => {
-                setDropdownOpen(false);
-                onLogoutConfirm();
-              }}
-              className="w-full text-left px-4 py-2 text-sm text-red-600 font-medium hover:bg-red-50 transition-colors focus:outline-none"
-            >
-              Logout
-            </button>
-          </div>
-        )}
+        <div
+          className={`absolute right-0 mt-2 w-48 bg-white border border-gray-100 shadow-xl rounded-xl py-2 z-50 overflow-hidden text-left origin-top-right transition-all duration-200 ease-out ${
+            dropdownOpen
+              ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
+              : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
+          }`}
+        >
+          <Link
+            to="/home"
+            onClick={() => setDropdownOpen(false)}
+            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            Settings
+          </Link>
+          <button
+            onClick={() => {
+              setDropdownOpen(false);
+              onLogoutConfirm();
+            }}
+            className="w-full text-left px-4 py-2 text-sm text-red-600 font-medium hover:bg-red-50 transition-colors focus:outline-none"
+          >
+            Logout
+          </button>
+        </div>
       </div>
     </header>
   );
