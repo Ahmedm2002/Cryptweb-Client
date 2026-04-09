@@ -22,6 +22,7 @@ export const Signup = () => {
     setError(null);
     try {
       const res = await signup(name, email, password);
+      console.log("Signup response: ", res);
       if (res && res.success) {
         navigate("/verify-email", { state: { email, otpSent: true } });
       } else {

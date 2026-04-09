@@ -17,32 +17,31 @@ class Api {
     });
 
     this.axios.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        return response;
+      },
       async (error) => {
         const originalRequest = error.config;
-        
         if (
-          error.response &&
-          error.response.status === 401 &&
-          !originalRequest._retry &&
-          !originalRequest.url.includes("/get-access-token")
+          error?.response?.status == 401 &&
+          error?.response?.data?.message == "Token expired" &&
+          !originalRequest._retry
         ) {
           originalRequest._retry = true;
           try {
             await this.axios.post("/user-session/get-access-token");
-            
-            const match = document.cookie.match(new RegExp('(^| )accessToken=([^;]+)'));
-            if (match && match[2]) {
-              originalRequest.headers.Authorization = `Bearer ${match[2]}`;
-            }
-            
             return this.axios(originalRequest);
           } catch (refreshError) {
             return Promise.reject(refreshError);
           }
+        } else if (
+          error?.response?.status == 403 &&
+          error?.response?.data?.message == "Refresh token expired"
+        ) {
+          console.log("Refresh token expired log out the user");
         }
         return Promise.reject(error);
-      }
+      },
     );
   }
 
@@ -82,7 +81,8 @@ class Api {
   handleError(error) {
     return (
       error?.response?.data || {
-        message: "Unexpected error. Try again later.",
+        message:
+          "There was an unexpected error at our end. Please try again later.",
       }
     );
   }

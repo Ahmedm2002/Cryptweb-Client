@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import { DashboardLayout } from "../components/layout/DashboardLayout";
-import { Home } from "../components/home/Home";
+import { Home } from "./Home";
 import { Profile } from "../components/profile/Profile";
 import Settings from "../components/settings/Settings";
 

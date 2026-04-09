@@ -30,7 +30,7 @@ export const DashboardLayout = ({ children }) => {
           setMobileOpen={setMobileOpen}
           onLogoutConfirm={() => setLogoutModalOpen(true)}
         />
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 w-full h-[calc(100vh-4rem)]">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-2 lg:p-4 w-full h-[calc(100vh-4rem)]">
           <div className="max-w-5xl mx-auto pb-10">{children}</div>
         </main>
       </div>
