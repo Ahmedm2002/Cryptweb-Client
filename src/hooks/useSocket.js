@@ -14,6 +14,8 @@ export const useSocket = () => {
   const { user } = useAuth();
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [friendStatus, setFriendStatus] = useState(null);
+  const [incomingRequest, setIncomingRequest] = useState(null);
+  const [requestStatus, setRequestStatus] = useState("idle"); // 'idle' | 'pending' | 'accepted' | 'declined'
 
   const onConnect = () => {
     setIsConnected(true);
@@ -22,36 +24,80 @@ export const useSocket = () => {
       name: user.name || user.email,
     });
   };
+
   useEffect(() => {
     if (!user) return;
 
-    // If the socket connected flawlessly before the hook mounted completely, force registration manually
     if (socket.connected) {
       onConnect();
     }
 
     const onDisconnect = () => setIsConnected(false);
     const onStatusUpdate = (statusData) => {
-      console.log("statusData", statusData);
       setFriendStatus(statusData);
+    };
+
+    const handleIncomingRequest = (data) => {
+      setIncomingRequest(data);
+    };
+
+    const handleConnectionResult = (data) => {
+      if (data.accepted) {
+        setRequestStatus("accepted");
+        if (data.name) {
+          setFriendStatus((prev) => ({ ...prev, name: data.name, isOnline: true }));
+        }
+      } else {
+        setRequestStatus("declined");
+        setTimeout(() => setRequestStatus("idle"), 3000);
+      }
     };
 
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("status-update", onStatusUpdate);
-    socket.on("user-status", onStatusUpdate);
+    socket.on("connection:incoming", handleIncomingRequest);
+    socket.on("connection:result", handleConnectionResult);
 
     return () => {
       socket.off("connect", onConnect);
       socket.off("status-update", onStatusUpdate);
-      socket.off("user-status", onStatusUpdate);
+      socket.off("connection:incoming", handleIncomingRequest);
+      socket.off("connection:result", handleConnectionResult);
     };
   }, [user]);
+
+  const sendConnectionRequest = (email) => {
+    if (!email) return;
+    setRequestStatus("pending");
+    socket.emit("connection:request", { from: user.email, to: email });
+  };
+
+  const respondToRequest = (fromEmail, accepted) => {
+    socket.emit("connection:response", {
+      from: user.email,
+      to: fromEmail,
+      accepted,
+    });
+    setIncomingRequest(null);
+    if (accepted) {
+      setRequestStatus("accepted");
+    }
+  };
 
   const checkFriendStatus = (email) => {
     if (!email) return;
     socket.emit("check-status", { email });
   };
 
-  return { isConnected, friendStatus, checkFriendStatus, onConnect };
+  return {
+    isConnected,
+    friendStatus,
+    incomingRequest,
+    requestStatus,
+    checkFriendStatus,
+    sendConnectionRequest,
+    respondToRequest,
+    onConnect,
+  };
 };

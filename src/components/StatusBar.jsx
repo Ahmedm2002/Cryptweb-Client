@@ -1,22 +1,22 @@
-const StatusBar = ({ isUserOnline, friendStatus }) => {
+const StatusBar = ({ isUserOnline, friendStatus, friendEmail, userName }) => {
   return (
-    <div className="w-full max-w-lg mx-auto bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col sm:flex-row justify-around items-center gap-4">
-      <div className="flex items-center gap-3">
-        <span className="text-gray-500 text-sm font-medium">You:</span>
-        <div className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 ${isUserOnline ? "bg-green-50 text-green-700" : "bg-red-50 text-red-700"}`}>
-          <div className={`w-2 h-2 rounded-full ${isUserOnline ? "bg-green-500" : "bg-red-500"}`} />
-          {isUserOnline ? "Online" : "Offline"}
-        </div>
+    <div className="flex items-center flex-col sm:flex-row gap-4 text-sm">
+      <div className="flex items-center gap-2">
+        <div
+          className={`w-2 h-2 rounded-full ${isUserOnline ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" : "bg-red-500"}`}
+        />
+        <span className="text-gray-400 font-medium">{userName || "You"}</span>
       </div>
-      
-      <div className="hidden sm:block w-px h-6 bg-gray-200" />
-      
-      <div className="flex items-center gap-3">
-        <span className="text-gray-500 text-sm font-medium">Friend:</span>
-        <div className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 ${friendStatus?.isOnline ? "bg-green-50 text-green-700" : "bg-gray-100 text-gray-600"}`}>
-          <div className={`w-2 h-2 rounded-full ${friendStatus?.isOnline ? "bg-green-500" : "bg-gray-400"}`} />
-          {friendStatus?.isOnline ? "Online" : "Offline"}
-        </div>
+
+      <div className="w-px h-3 bg-gray-200" />
+
+      <div className="flex items-center text-center gap-2">
+        <div
+          className={`w-2 h-2 rounded-full ${friendStatus?.isOnline ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" : "bg-gray-300"}`}
+        />
+        <span className="text-gray-900 font-semibold max-w-[150px]">
+          {friendStatus?.name || friendEmail || "Friend"}
+        </span>
       </div>
     </div>
   );
