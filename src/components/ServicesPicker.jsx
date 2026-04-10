@@ -1,22 +1,30 @@
 import React from "react";
 import { FileText, Mic, Video } from "lucide-react";
 
-const ServiceCard = ({ icon: Icon, title, onClick, comingSoon }) => (
+const ServiceCard = ({ icon: Icon, title, onClick, comingSoon, disabled }) => (
   <button
-    onClick={onClick}
-    className="group flex flex-col items-center gap-3 transition-opacity duration-300"
+    onClick={disabled ? undefined : onClick}
+    className={`group flex flex-col items-center gap-3 transition-opacity duration-300 relative ${disabled ? "cursor-not-allowed opacity-60" : ""}`}
   >
-    <div className="w-24 h-24 bg-gray-50 border border-gray-100 rounded-2xl flex items-center justify-center group-hover:bg-gray-100 group-active:scale-95 transition-all">
-      <Icon className="w-10 h-10 text-gray-400 group-hover:text-gray-600 transition-colors" />
+    {comingSoon && (
+      <span className="absolute -top-2 -right-2 z-10 bg-indigo-600 text-white text-[10px] font-bold uppercase py-1 px-2 rounded-lg shadow-lg shadow-indigo-100">
+        Upcoming
+      </span>
+    )}
+    <div
+      className={`w-24 h-24 bg-gray-50 border border-gray-100 rounded-2xl flex items-center justify-center transition-all ${!disabled ? "group-hover:bg-gray-100 group-active:scale-95" : ""}`}
+    >
+      <Icon
+        className={`w-10 h-10 ${disabled ? "text-gray-300" : "text-gray-400 group-hover:text-gray-600"} transition-colors`}
+      />
     </div>
 
     <div className="flex flex-col items-center gap-0.5">
-      <span className="text-gray-900 font-medium text-sm">{title}</span>
-      {comingSoon && (
-        <span className="text-[10px] font-bold uppercase tracking-tight text-gray-400">
-          Coming Soon
-        </span>
-      )}
+      <span
+        className={`font-medium text-sm ${disabled ? "text-gray-400" : "text-gray-900"}`}
+      >
+        {title}
+      </span>
     </div>
   </button>
 );
@@ -28,18 +36,21 @@ const ServicesPicker = ({ onSelectService }) => {
       title: "Audio Call",
       icon: Mic,
       comingSoon: true,
+      disabled: true,
     },
     {
       id: "file",
       title: "Send File",
       icon: FileText,
       comingSoon: false,
+      disabled: false,
     },
     {
       id: "video",
       title: "Video Call",
       icon: Video,
       comingSoon: true,
+      disabled: true,
     },
   ];
 

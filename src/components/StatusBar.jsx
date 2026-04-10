@@ -1,6 +1,9 @@
 const StatusBar = ({ isUserOnline, friendStatus, friendEmail, userName }) => {
   return (
-    <div className="flex items-center flex-col sm:flex-row gap-4 text-sm">
+    <div
+      id="status-bar"
+      className="flex items-center flex-col sm:flex-row gap-4 text-sm"
+    >
       <div className="flex items-center gap-2">
         <div
           className={`w-2 h-2 rounded-full ${isUserOnline ? "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]" : "bg-red-500"}`}

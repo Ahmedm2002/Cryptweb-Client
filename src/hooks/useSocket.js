@@ -15,10 +15,12 @@ export const useSocket = () => {
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [friendStatus, setFriendStatus] = useState(null);
   const [incomingRequest, setIncomingRequest] = useState(null);
-  const [requestStatus, setRequestStatus] = useState("idle"); // 'idle' | 'pending' | 'accepted' | 'declined'
+  // 'idle' | 'pending' | 'accepted' | 'declined'
+  const [requestStatus, setRequestStatus] = useState("idle");
 
   const onConnect = () => {
     setIsConnected(true);
+    console.log("Firing socket connection event");
     socket.emit("register", {
       email: user.email,
       name: user.name || user.email,
@@ -45,7 +47,11 @@ export const useSocket = () => {
       if (data.accepted) {
         setRequestStatus("accepted");
         if (data.name) {
-          setFriendStatus((prev) => ({ ...prev, name: data.name, isOnline: true }));
+          setFriendStatus((prev) => ({
+            ...prev,
+            name: data.name,
+            isOnline: true,
+          }));
         }
       } else {
         setRequestStatus("declined");
