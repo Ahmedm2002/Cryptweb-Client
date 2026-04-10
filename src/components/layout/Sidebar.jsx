@@ -3,8 +3,8 @@ import { Home, User, Settings, LogOut, X } from "lucide-react";
 
 const navItems = [
   { name: "Home", path: "/home", icon: Home },
-  { name: "Profile", path: "/profile", icon: User },
-  { name: "Settings", path: "/settings", icon: Settings },
+  // { name: "Profile", path: "/profile", icon: User },
+  // { name: "Settings", path: "/settings", icon: Settings },
 ];
 
 export const Sidebar = ({ isMobileOpen, setMobileOpen, onLogoutConfirm }) => {

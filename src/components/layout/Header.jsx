@@ -39,42 +39,15 @@ export const Header = ({ onLogoutConfirm, onMenuClick }) => {
         </Link>
       </div>
 
-      <div className="relative" ref={dropdownRef}>
-        <button
-          onClick={() => setDropdownOpen((prev) => !prev)}
-          className="flex items-center gap-3 focus:outline-none hover:bg-gray-50 px-2 py-1.5 rounded-xl transition-colors"
-        >
-          <span className="text-sm font-semibold text-gray-700 hidden sm:block">
-            {user?.name || "User"}
-          </span>
-          <div className="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
-            {(user?.name || "U").charAt(0).toUpperCase()}
-          </div>
-        </button>
-
-        <div
-          className={`absolute right-0 mt-2 w-48 bg-white border border-gray-100 shadow-xl rounded-xl py-2 z-50 overflow-hidden text-left origin-top-right transition-all duration-200 ease-out ${
-            dropdownOpen
-              ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
-              : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
-          }`}
-        >
-          <Link
-            to="/home"
-            onClick={() => setDropdownOpen(false)}
-            className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
-          >
-            Settings
-          </Link>
-          <button
-            onClick={() => {
-              setDropdownOpen(false);
-              onLogoutConfirm();
-            }}
-            className="w-full text-left px-4 py-2 text-sm text-red-600 font-medium hover:bg-red-50 transition-colors focus:outline-none"
-          >
-            Logout
-          </button>
+      <div
+        className="relative flex flow-row items-center justify-center gap-2"
+        ref={dropdownRef}
+      >
+        <span className="text-md font-semibold text-gray-700 hidden sm:block">
+          {user?.name || "User"}
+        </span>
+        <div className="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+          {(user?.name || "U").charAt(0).toUpperCase()}
         </div>
       </div>
     </header>

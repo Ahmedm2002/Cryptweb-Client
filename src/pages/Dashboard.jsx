@@ -36,8 +36,8 @@ export const Dashboard = () => {
   return (
     <DashboardLayout>
       {activeView === "home" && <Home />}
-      {activeView === "profile" && <Profile />}
-      {activeView === "settings" && <Settings />}
+      {/* {activeView === "profile" && <Profile />}
+      {activeView === "settings" && <Settings />} */}
     </DashboardLayout>
   );
 };
