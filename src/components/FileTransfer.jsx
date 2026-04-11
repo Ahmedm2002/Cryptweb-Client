@@ -54,28 +54,10 @@ const FileTransfer = ({ friendEmail, status }) => {
 
   return (
     <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="bg-white rounded-[2.5rem] p-8 sm:p-12 border border-gray-100 shadow-2xl flex flex-col h-full overflow-hidden relative">
+      <div className="p-4 sm:p-8 flex flex-col h-full overflow-hidden relative">
         {/* Decorative elements */}
         <div className="absolute top-0 right-0 p-8 opacity-[0.03] pointer-events-none">
           <Zap className="w-32 h-32 text-indigo-600" />
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
-          <div className="flex flex-col gap-1">
-            <h3 className="text-2xl font-bold text-gray-900 font-display">
-              Send Documents
-            </h3>
-            <p className="text-sm text-gray-500 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              End-to-end encrypted direct transfer
-            </p>
-          </div>
-          {status?.isOnline && (
-            <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 text-xs font-bold uppercase tracking-wider px-4 py-2 rounded-full border border-emerald-100">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
-              Connection Active
-            </div>
-          )}
         </div>
 
         <div

@@ -57,7 +57,7 @@ const ServicesPicker = ({ onSelectService }) => {
   return (
     <div
       id="services-picker"
-      className="w-full max-w-2xl mx-auto py-8 px-4 animate-in fade-in duration-500"
+      className="w-full max-w-2xl  mx-auto py-24 px-4 animate-in fade-in duration-500"
     >
       <div className="flex justify-center flex-wrap items-center gap-8 sm:gap-16">
         {services.map((service) => (

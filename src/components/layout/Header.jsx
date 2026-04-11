@@ -46,7 +46,7 @@ export const Header = ({ onLogoutConfirm, onMenuClick }) => {
         <span className="text-md font-semibold text-gray-700 hidden sm:block">
           {user?.name || "User"}
         </span>
-        <div className="w-9 h-9 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+        <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
           {(user?.name || "U").charAt(0).toUpperCase()}
         </div>
       </div>

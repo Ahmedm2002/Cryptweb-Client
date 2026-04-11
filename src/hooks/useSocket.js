@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import { useAuth } from "./useAuth";
 
@@ -15,8 +15,17 @@ export const useSocket = () => {
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [friendStatus, setFriendStatus] = useState(null);
   const [incomingRequest, setIncomingRequest] = useState(null);
-  // 'idle' | 'pending' | 'accepted' | 'declined'
+  // 'idle' | 'checking' | 'pending' | 'accepted' | 'declined' | 'offline' | 'timeout'
   const [requestStatus, setRequestStatus] = useState("idle");
+  const [pendingEmail, setPendingEmail] = useState(null);
+  const timeoutRef = useRef(null);
+
+  const clearRequestTimeout = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+  };
 
   const onConnect = () => {
     setIsConnected(true);
@@ -34,16 +43,50 @@ export const useSocket = () => {
       onConnect();
     }
 
-    const onDisconnect = () => setIsConnected(false);
+    const onDisconnect = () => {
+      setIsConnected(false);
+      clearRequestTimeout();
+    };
+
     const onStatusUpdate = (statusData) => {
       setFriendStatus(statusData);
+
+      if (requestStatus === "checking") {
+        if (statusData.isOnline) {
+          setRequestStatus("pending");
+          socket.emit("connection:request", {
+            from: user.email,
+            to: pendingEmail,
+          });
+
+          // Start 5s timeout
+          clearRequestTimeout();
+          timeoutRef.current = setTimeout(() => {
+            setRequestStatus("timeout");
+            setTimeout(() => setRequestStatus("idle"), 3000);
+          }, 5000);
+        } else {
+          setRequestStatus("offline");
+          setTimeout(() => setRequestStatus("idle"), 3000);
+        }
+      }
     };
 
     const handleIncomingRequest = (data) => {
       setIncomingRequest(data);
     };
 
+    const handleUserStatus = (data) => {
+      if (data.isOnline === false) {
+        setRequestStatus("idle");
+        setFriendStatus(null);
+        clearRequestTimeout();
+      }
+    };
+
     const handleConnectionResult = (data) => {
+      console.log("handleConnectionResult data: ", data);
+      clearRequestTimeout();
       if (data.accepted) {
         setRequestStatus("accepted");
         if (data.name) {
@@ -62,24 +105,29 @@ export const useSocket = () => {
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("status-update", onStatusUpdate);
+    socket.on("user-status", handleUserStatus);
     socket.on("connection:incoming", handleIncomingRequest);
     socket.on("connection:result", handleConnectionResult);
 
     return () => {
       socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
       socket.off("status-update", onStatusUpdate);
+      socket.off("user-status", handleUserStatus);
       socket.off("connection:incoming", handleIncomingRequest);
       socket.off("connection:result", handleConnectionResult);
+      clearRequestTimeout();
     };
-  }, [user]);
+  }, [user, requestStatus, pendingEmail]);
 
   const sendConnectionRequest = (email) => {
     if (!email) return;
-    setRequestStatus("pending");
-    socket.emit("connection:request", { from: user.email, to: email });
+    setPendingEmail(email);
+    setRequestStatus("checking");
+    socket.emit("check-status", { email });
   };
 
-  const respondToRequest = (fromEmail, accepted) => {
+  const respondToRequest = (fromEmail, accepted, fromName) => {
     socket.emit("connection:response", {
       from: user.email,
       to: fromEmail,
@@ -88,6 +136,10 @@ export const useSocket = () => {
     setIncomingRequest(null);
     if (accepted) {
       setRequestStatus("accepted");
+      setFriendStatus({
+        name: fromName || fromEmail,
+        isOnline: true,
+      });
     }
   };
 
