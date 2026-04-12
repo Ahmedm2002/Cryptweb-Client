@@ -54,17 +54,13 @@ export const useSocket = () => {
       if (requestStatus === "checking") {
         if (statusData.isOnline) {
           setRequestStatus("pending");
-          socket.emit("connection:request", {
-            from: user.email,
-            to: pendingEmail,
-          });
 
-          // Start 5s timeout
+          // Start 10s timeout for the peer to respond
           clearRequestTimeout();
           timeoutRef.current = setTimeout(() => {
             setRequestStatus("timeout");
             setTimeout(() => setRequestStatus("idle"), 3000);
-          }, 5000);
+          }, 15000);
         } else {
           setRequestStatus("offline");
           setTimeout(() => setRequestStatus("idle"), 3000);
@@ -124,7 +120,7 @@ export const useSocket = () => {
     if (!email) return;
     setPendingEmail(email);
     setRequestStatus("checking");
-    socket.emit("check-status", { email });
+    socket.emit("connection:request", { from: user.email, to: email });
   };
 
   const respondToRequest = (fromEmail, accepted, fromName) => {
@@ -145,7 +141,7 @@ export const useSocket = () => {
 
   const checkFriendStatus = (email) => {
     if (!email) return;
-    socket.emit("check-status", { email });
+    socket.emit(" ", { email });
   };
 
   return {
