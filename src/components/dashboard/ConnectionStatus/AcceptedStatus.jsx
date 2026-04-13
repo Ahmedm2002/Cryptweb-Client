@@ -5,7 +5,8 @@ import ServicesPicker from "../../ServicesPicker";
 import FileTransfer from "../../FileTransfer";
 import AudioCall from "../../AudioCall";
 import VideoCall from "../../VideoCall";
-
+import { socket } from "../../../hooks/useSocket";
+import { closeConnection } from "../../configs/webrtc.config";
 const AcceptedStatus = ({
   isConnected,
   friendStatus,
@@ -61,7 +62,10 @@ const AcceptedStatus = ({
           />
         </div>
         <button
-          onClick={onDisconnect}
+          onClick={() => {
+            socket.close();
+            closeConnection();
+          }}
           className="text-sm font-medium text-gray-400 hover:text-red-500 px-4 py-2 hover:bg-red-50 rounded-xl transition-all"
         >
           Disconnect Session

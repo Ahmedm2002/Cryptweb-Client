@@ -95,9 +95,7 @@ export const VerifyEmail = () => {
             <p className="text-gray-500">
               Your email has been verified successfully.
             </p>
-            <p className="text-sm text-gray-400 italic">
-              Redirecting to login...
-            </p>
+            <p className="text-sm text-gray-400 italic">Redirecting ...</p>
           </div>
         ) : !otpSent ? (
           <div className="space-y-6">

@@ -1,6 +1,13 @@
 import { useEffect, useState, useRef } from "react";
 import { io } from "socket.io-client";
 import { useAuth } from "./useAuth";
+import {
+  rtcConnection,
+  createOffer,
+  createAnswer,
+  setRemoteDescription,
+  createDataChannel,
+} from "../components/configs/webrtc.config";
 
 const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_SERVER_URL;
 
@@ -18,6 +25,7 @@ export const useSocket = () => {
   // 'idle' | 'checking' | 'pending' | 'accepted' | 'declined' | 'offline' | 'timeout'
   const [requestStatus, setRequestStatus] = useState("idle");
   const [pendingEmail, setPendingEmail] = useState(null);
+  const [isInitiator, setIsInitiator] = useState(false);
   const timeoutRef = useRef(null);
 
   const clearRequestTimeout = () => {
@@ -29,8 +37,8 @@ export const useSocket = () => {
 
   const onConnect = () => {
     setIsConnected(true);
-    console.log("Firing socket connection event");
-    socket.emit("register", {
+    console.log("Socket id for: ", user.email, "is: ", socket.id);
+    socket.emit("user:register", {
       email: user.email,
       name: user.name || user.email,
     });
@@ -80,11 +88,14 @@ export const useSocket = () => {
       }
     };
 
-    const handleConnectionResult = (data) => {
+    const handleConnectionResult = async (data) => {
       console.log("handleConnectionResult data: ", data);
       clearRequestTimeout();
       if (data.accepted) {
         setRequestStatus("accepted");
+        setIsInitiator(true);
+        console.log("RTC Connection status: Initiator");
+
         if (data.name) {
           setFriendStatus((prev) => ({
             ...prev,
@@ -92,9 +103,73 @@ export const useSocket = () => {
             isOnline: true,
           }));
         }
+
+        // --- WebRTC Step 1: Initiator creates data channel and offer ---
+        try {
+          createDataChannel();
+          const offer = await createOffer();
+          console.log("Sending WebRTC Offer to:", pendingEmail || data.from);
+          socket.emit("offer", {
+            offer,
+            to: pendingEmail || data.from,
+            from: user.email,
+          });
+        } catch (error) {
+          console.error("Error creating WebRTC offer:", error);
+        }
       } else {
         setRequestStatus("declined");
         setTimeout(() => setRequestStatus("idle"), 3000);
+      }
+    };
+
+    const handleOffer = async (data) => {
+      console.log("Received WebRTC Offer from:", data.from);
+      try {
+        await setRemoteDescription(data.offer);
+        const answer = await createAnswer();
+        console.log("Sending WebRTC Answer to:", data.from);
+        socket.emit("answer", {
+          answer,
+          to: data.from,
+          from: user.email,
+        });
+        setPendingEmail(data.from); // Keep track of the peer
+      } catch (error) {
+        console.error("Error handling WebRTC offer:", error);
+      }
+    };
+
+    const handleAnswer = async (data) => {
+      console.log("Received WebRTC Answer from:", data.from);
+      try {
+        await setRemoteDescription(data.answer);
+      } catch (error) {
+        console.error("Error handling WebRTC answer:", error);
+      }
+    };
+
+    const handleIceCandidate = async (data) => {
+      if (data.candidate) {
+        console.log("Received ICE candidate from:", data.from);
+        try {
+          await rtcConnection.addIceCandidate(data.candidate);
+        } catch (error) {
+          console.error("Error adding ICE candidate:", error);
+        }
+      }
+    };
+
+    // Set up ICE candidate generation listener
+    rtcConnection.onCandidateGenerated = (candidate) => {
+      const peerEmail = pendingEmail || (incomingRequest && incomingRequest.from);
+      if (peerEmail) {
+        console.log("Emitting ICE candidate to:", peerEmail);
+        socket.emit("ice-candidate", {
+          candidate,
+          to: peerEmail,
+          from: user.email,
+        });
       }
     };
 
@@ -104,6 +179,9 @@ export const useSocket = () => {
     socket.on("user-status", handleUserStatus);
     socket.on("connection:incoming", handleIncomingRequest);
     socket.on("connection:result", handleConnectionResult);
+    socket.on("offer", handleOffer);
+    socket.on("answer", handleAnswer);
+    socket.on("ice-candidate", handleIceCandidate);
 
     return () => {
       socket.off("connect", onConnect);
@@ -112,6 +190,10 @@ export const useSocket = () => {
       socket.off("user-status", handleUserStatus);
       socket.off("connection:incoming", handleIncomingRequest);
       socket.off("connection:result", handleConnectionResult);
+      socket.off("offer", handleOffer);
+      socket.off("answer", handleAnswer);
+      socket.off("ice-candidate", handleIceCandidate);
+      rtcConnection.onCandidateGenerated = null;
       clearRequestTimeout();
     };
   }, [user, requestStatus, pendingEmail]);
