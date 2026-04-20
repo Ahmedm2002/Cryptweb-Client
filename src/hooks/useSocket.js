@@ -37,7 +37,7 @@ export const useSocket = () => {
 
   const onConnect = () => {
     setIsConnected(true);
-    console.log("Socket id for: ", user.email, "is: ", socket.id);
+    console.log("Socket id for: ", user.email, "is: ", socket.id, new Date());
     socket.emit("user:register", {
       email: user.email,
       name: user.name || user.email,
@@ -108,10 +108,11 @@ export const useSocket = () => {
         try {
           createDataChannel();
           const offer = await createOffer();
-          console.log("Sending WebRTC Offer to:", pendingEmail || data.from);
+          const peer = pendingEmail || data.from;
+          console.log("Sending WebRTC Offer to:", peer);
           socket.emit("offer", {
             offer,
-            to: pendingEmail || data.from,
+            to: peer,
             from: user.email,
           });
         } catch (error) {
@@ -125,6 +126,10 @@ export const useSocket = () => {
 
     const handleOffer = async (data) => {
       console.log("Received WebRTC Offer from:", data.from);
+      if (rtcConnection.signalingState !== "stable") {
+        console.warn("Ignoring overlapping offer - WebRTC config is not stable:", rtcConnection.signalingState);
+        return;
+      }
       try {
         await setRemoteDescription(data.offer);
         const answer = await createAnswer();
@@ -162,7 +167,8 @@ export const useSocket = () => {
 
     // Set up ICE candidate generation listener
     rtcConnection.onCandidateGenerated = (candidate) => {
-      const peerEmail = pendingEmail || (incomingRequest && incomingRequest.from);
+      const peerEmail =
+        pendingEmail || (incomingRequest && incomingRequest.from);
       if (peerEmail) {
         console.log("Emitting ICE candidate to:", peerEmail);
         socket.emit("ice-candidate", {
@@ -214,6 +220,7 @@ export const useSocket = () => {
     setIncomingRequest(null);
     if (accepted) {
       setRequestStatus("accepted");
+      setPendingEmail(fromEmail);
       setFriendStatus({
         name: fromName || fromEmail,
         isOnline: true,

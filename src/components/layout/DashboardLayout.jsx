@@ -4,12 +4,12 @@ import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import { Modal } from "../ui/Modal";
 import { Button } from "../Button";
-import { useUser } from "../../hooks/useUser";
+import { useAuth } from "../../hooks/useAuth";
 
 export const DashboardLayout = ({ children }) => {
   const [isMobileOpen, setMobileOpen] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
-  const { logout } = useUser();
+  const { logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {

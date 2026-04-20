@@ -1,8 +1,27 @@
-import { useSession } from "../../hooks/useSession";
 import { Loader } from "../Loader";
+import { api } from "../../services/api";
+import React, { useState } from "react";
 
 export const SessionList = () => {
-  const { sessions, loading, error } = useSession();
+  const [sessions, setSessions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  async function fetchSessions() {
+    try {
+      const response = await api.get("/user-session/all");
+      setSessions(response.data);
+    } catch (error) {
+      setError(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchSessions();
+  }, []);
+
   if (loading)
     return (
       <div className="py-16 flex justify-center">
