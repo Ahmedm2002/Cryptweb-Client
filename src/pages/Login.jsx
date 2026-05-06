@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { Button } from "../components/Button";
+import { Button } from "../components/commons/Button";
 
 export const Login = () => {
   const [email, setEmail] = useState("");

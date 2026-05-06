@@ -1,4 +1,4 @@
-import { Loader } from "../Loader";
+import { Loader } from "../commons/Loader";
 import { api } from "../../services/api";
 import React, { useState } from "react";
 

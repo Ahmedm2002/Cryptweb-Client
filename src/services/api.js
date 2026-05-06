@@ -15,6 +15,7 @@ class Api {
       }
       return config;
     });
+    this.axios.defaults.withCredentials = true;
 
     this.axios.interceptors.response.use(
       (response) => {

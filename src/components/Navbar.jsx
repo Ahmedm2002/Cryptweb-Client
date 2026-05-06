@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import menu from "../../data/menu";
-import { Button } from "../components/Button.jsx";
+import { Button } from "./commons/Button.jsx";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { Button } from "../components/Button";
+import { Button } from "../components/commons/Button";
 
 export const Signup = () => {
   const [email, setEmail] = useState("");
@@ -24,7 +24,7 @@ export const Signup = () => {
       const res = await signup(name, email, password);
       console.log("Signup response: ", res);
       if (res && res.success) {
-        navigate("/verify-email", { state: { email, otpSent: true } });
+        navigate("/home");
       } else {
         setError(res?.message || "Registration failed");
       }

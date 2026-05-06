@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
 import { Modal } from "../ui/Modal";
-import { Button } from "../Button";
+import { Button } from "../commons/Button";
 import { useAuth } from "../../hooks/useAuth";
 
-export const DashboardLayout = ({ children }) => {
+function DashboardLayout({ children }) {
   const [isMobileOpen, setMobileOpen] = useState(false);
   const [logoutModalOpen, setLogoutModalOpen] = useState(false);
   const { logout } = useAuth();
@@ -57,4 +57,6 @@ export const DashboardLayout = ({ children }) => {
       </Modal>
     </div>
   );
-};
+}
+
+export default DashboardLayout;

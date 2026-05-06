@@ -1,33 +1,23 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { DashboardLayout } from "../components/layout/DashboardLayout";
-import { Home } from "./Home";
+import DashboardLayout from "../components/layout/DashboardLayout";
+import Home from "./Home";
 import { Profile } from "../components/profile/Profile";
 import Settings from "../components/settings/Settings";
 import { useAuth } from "../hooks/useAuth";
-import { socket, useSocket } from "../hooks/useSocket";
-export const Dashboard = () => {
+import { useSocket, socket } from "../hooks/useSocket";
+function Dashboard() {
   const { user } = useAuth();
-  const { isConnected, onConnect } = useSocket();
+  const { isConnectedWithServer, connectWithServer } = useSocket();
   const location = useLocation();
   const [activeView, setActiveView] = useState("home");
 
   useEffect(() => {
-    console.log("socket status: ", isConnected);
-    if (!isConnected) {
+    if (!isConnectedWithServer) {
       socket.connect(() => {
-        onConnect();
-      });
+        connectWithServer()
+      })
     }
-
-    if (location.pathname.startsWith("/profile")) {
-      setActiveView("profile");
-    } else if (location.pathname.startsWith("/settings")) {
-      setActiveView("settings");
-    } else {
-      setActiveView("home");
-    }
-
     return () => {
       socket.disconnect();
     };
@@ -41,3 +31,5 @@ export const Dashboard = () => {
     </DashboardLayout>
   );
 };
+
+export default Dashboard

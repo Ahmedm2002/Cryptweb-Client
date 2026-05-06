@@ -7,7 +7,7 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Button } from "../components/Button.jsx";
+import { Button } from "../components/commons/Button.jsx";
 
 export const Security = () => {
   return (

@@ -8,13 +8,13 @@ import {
 import { AuthProvider } from "./context/AuthContext";
 import { useAuth } from "./hooks/useAuth";
 import Navbar from "./components/Navbar.jsx";
-import { Loader } from "./components/Loader.jsx";
+import { Loader } from "./components/commons/Loader.jsx";
 import { Product } from "./pages/Product.jsx";
 import { Login } from "./pages/Login.jsx";
 import { Signup } from "./pages/Signup.jsx";
-import { VerifyEmail } from "./pages/VerifyEmail.jsx";
+// import { VerifyEmail } from "./pages/VerifyEmail.jsx";
 import { Security } from "./pages/Security.jsx";
-import { Dashboard } from "./pages/Dashboard.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
 
 const AuthRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -34,7 +34,7 @@ const ConditionalNavbar = ({ menuItems }) => {
   const location = useLocation();
   const hideNavbarRoutes = ["/home", "/profile", "/settings"];
   const shouldHide = hideNavbarRoutes.some((path) =>
-    location.pathname.startsWith(path)
+    location.pathname.startsWith(path),
   );
 
   if (shouldHide) return null;
@@ -97,14 +97,14 @@ const AppContent = () => {
               </AuthRoute>
             }
           />
-          <Route
+          {/* <Route
             path="/verify-email"
             element={
               <AuthRoute>
                 <VerifyEmail />
               </AuthRoute>
             }
-          />
+          /> */}
           <Route path="/security" element={<Security />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

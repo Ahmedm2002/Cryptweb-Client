@@ -1,4 +1,4 @@
-import { Popup } from "../Popup";
+import { Popup } from "../commons/Popup";
 
 export const Modal = ({ isOpen, onClose, title, children }) => {
   return (

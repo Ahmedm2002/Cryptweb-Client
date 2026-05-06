@@ -70,26 +70,26 @@ export const AuthProvider = ({ children }) => {
     return res;
   };
 
-  async function verifyEmail(email, code) {
-    try {
-      const res = await api.post(`/verify/email`, { email, code });
-      if (res && res.success) {
-        if (res.data) setUser(res.data?.user || res.data);
-      }
-      return res;
-    } catch (error) {
-      return error;
-    }
-  }
+  // async function verifyEmail(email, code) {
+  //   try {
+  //     const res = await api.post(`/verify/email`, { email, code });
+  //     if (res && res.success) {
+  //       if (res.data) setUser(res.data?.user || res.data);
+  //     }
+  //     return res;
+  //   } catch (error) {
+  //     return error;
+  //   }
+  // }
 
-  async function resendVerificationEmail(email) {
-    try {
-      const res = await api.post(`/verify/resend-code`, { email });
-      return res;
-    } catch (error) {
-      return error;
-    }
-  }
+  // async function resendVerificationEmail(email) {
+  //   try {
+  //     const res = await api.post(`/verify/resend-code`, { email });
+  //     return res;
+  //   } catch (error) {
+  //     return error;
+  //   }
+  // }
 
   return (
     <AuthContext.Provider
@@ -99,8 +99,8 @@ export const AuthProvider = ({ children }) => {
         logout,
         login,
         signup,
-        verifyEmail,
-        resendVerificationEmail,
+        // verifyEmail,
+        // resendVerificationEmail,
       }}
     >
       {children}

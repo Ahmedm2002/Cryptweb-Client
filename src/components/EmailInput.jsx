@@ -1,14 +1,8 @@
 import { useState } from "react";
+import { Button } from "./commons/Button";
 
-const EmailInput = ({ onConnect, disabled }) => {
+const EmailInput = ({ isConnectedWithServer, checkFriendsStatus }) => {
   const [email, setEmail] = useState("");
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (email.trim()) {
-      onConnect(email.trim());
-    }
-  };
 
   return (
     <div className="w-full flex flex-col items-center mt-2">
@@ -21,10 +15,8 @@ const EmailInput = ({ onConnect, disabled }) => {
           Your Status: Active
         </span>
       </div>
-      <form
-        onSubmit={handleSubmit}
-        className="w-full max-w-md mx-auto flex flex-col sm:flex-row gap-3"
-      >
+
+      <form className="w-full max-w-md mx-auto flex flex-col sm:flex-row gap-3">
         <input
           type="email"
           placeholder="Enter friend's email"
@@ -33,13 +25,14 @@ const EmailInput = ({ onConnect, disabled }) => {
           required
           className="flex-1 px-5 py-3 rounded-2xl border border-gray-200 bg-white shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all disabled:opacity-50"
         />
-        <button
+
+        <Button
           type="submit"
-          disabled={email.trim() === "" || disabled}
-          className="w-full sm:w-auto px-8 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-2xl shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:hover:bg-indigo-600"
+          disabled={email.trim() === ""}
+          className="w-full sm:w-auto px-8 py-3 rounded-2xl"
         >
           Connect
-        </button>
+        </Button>
       </form>
     </div>
   );
