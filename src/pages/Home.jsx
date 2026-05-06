@@ -6,8 +6,7 @@ import { useSocket } from "../hooks/useSocket";
 function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { isConnectedWithServer, checkFriendsStatus, connectWithServer } =
-    useSocket();
+  const { isConnectedWithServer, connectWithServer } = useSocket();
 
   if (!user) {
     navigate("/login");
@@ -18,10 +17,7 @@ function Home() {
   }
   return (
     <div className="w-full h-full flex flex-col gap-6 animate-in fade-in duration-300 relative">
-      <EmailInput
-        isConnectedWithServer={isConnectedWithServer}
-        checkFriendsStatus={checkFriendsStatus}
-      />
+      <EmailInput isConnectedWithServer={isConnectedWithServer} />
     </div>
   );
 }

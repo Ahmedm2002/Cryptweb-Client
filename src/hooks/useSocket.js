@@ -30,18 +30,6 @@ function useSocket() {
     });
   }
 
-  async function checkFriendsStatus(email) {
-    try {
-      const friendsStatus = await api.post("/user-session/get-friend-status", {
-        email,
-      });
-      console.log("Friend's Status response: ", friendStatus);
-      return friendsStatus.data;
-    } catch (error) {
-      console.log("Error occured");
-    }
-  }
-
   useEffect(() => {
     if (!user) return;
 
@@ -56,7 +44,6 @@ function useSocket() {
   }, []);
 
   return {
-    checkFriendsStatus,
     isConnectedWithServer,
     isConnectedWithFriend,
     connectWithServer,

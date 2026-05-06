@@ -1,22 +1,46 @@
 import { useState } from "react";
 import { Button } from "./commons/Button";
+import { api } from "../services/api";
 
-const EmailInput = ({ isConnectedWithServer, checkFriendsStatus }) => {
+const EmailInput = ({ isConnectedWithServer }) => {
   const [email, setEmail] = useState("");
+  const [status, setStatus] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  async function checkFriendsStatus() {
+    if (email.trim() === "") return;
+
+    try {
+      setLoading(true);
+
+      const res = await api.post("/user-session/get-friend-status", {
+        email,
+      });
+
+      console.log("Friend's Status response: ", res.success);
+
+      setStatus(res);
+    } catch (error) {
+      console.log("Error occured: ", error);
+
+      setStatus({
+        success: false,
+        message: error?.response?.data?.message || "Something went wrong",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <div className="w-full flex flex-col items-center mt-2">
-      <div className="flex items-center gap-2 mb-6 px-4 py-2 bg-green-50 rounded-full w-max shadow-sm border border-green-100">
-        <span className="relative flex h-3 w-3">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-        </span>
-        <span className="text-sm font-bold text-green-700 tracking-wide">
-          Your Status: Active
-        </span>
-      </div>
-
-      <form className="w-full max-w-md mx-auto flex flex-col sm:flex-row gap-3">
+    <div className="w-full flex flex-col items-center justify-center mt-2">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          checkFriendsStatus();
+        }}
+        className="w-full max-w-md mx-auto flex flex-col sm:flex-row gap-3"
+      >
         <input
           type="email"
           placeholder="Enter friend's email"
@@ -28,12 +52,18 @@ const EmailInput = ({ isConnectedWithServer, checkFriendsStatus }) => {
 
         <Button
           type="submit"
-          disabled={email.trim() === ""}
+          disabled={!email || email.trim() === "" || loading}
           className="w-full sm:w-auto px-8 py-3 rounded-2xl"
         >
-          Connect
+          {loading ? "Checking..." : "Connect"}
         </Button>
       </form>
+
+      {status && !status.isOnline && (
+        <div className="mt-4 w-full max-w-md p-4 rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <p className="text-red-500 font-medium">{status.message}</p>
+        </div>
+      )}
     </div>
   );
 };
