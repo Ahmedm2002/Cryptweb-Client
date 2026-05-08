@@ -1,7 +1,6 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import { useAuth } from "./useAuth";
-import { api } from "../services/api";
 
 const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_SERVER_URL;
 
@@ -23,30 +22,44 @@ function useSocket() {
 
   function connectWithServer() {
     setIsConnectedWithServer(true);
-    console.log("Event fired for connecting with socket server: ", user);
     socket.emit("user:register", {
       email: user.email,
       name: user.name || user.email,
     });
   }
 
+  function updateFriendsStatus(data) {
+    setIsInitiator(true);
+    setFriendStatus(data);
+    if (friendStatus?.data?.isOnline) {
+      console.log("Friend is online send him offer to connect");
+    }
+  }
+  function onIncomingRequest(data) {
+    setIsInitiator(false);
+    setIncomingRequest(data);
+  }
   useEffect(() => {
     if (!user) return;
 
     if (!socket.connected) {
-      console.log("User not conencted: attempting to connect to socket server");
       connectWithServer();
     }
 
     const onDisconnect = () => {
       setIsConnectedWithServer(false);
     };
+
+
   }, []);
 
   return {
     isConnectedWithServer,
     isConnectedWithFriend,
     connectWithServer,
+    updateFriendsStatus,
+    friendStatus,
+    setIsInitiator,
   };
 }
 

@@ -1,28 +1,26 @@
 import { useState } from "react";
 import { Button } from "./commons/Button";
 import { api } from "../services/api";
+import { useSocket } from "../hooks/useSocket";
 
-const EmailInput = ({ isConnectedWithServer }) => {
+function EmailInput() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
+  const { updateFriendsStatus } = useSocket();
 
   async function checkFriendsStatus() {
     if (email.trim() === "") return;
 
     try {
+      // Remove the older status of the friends and get the new status of other friend
+      updateFriendsStatus(null);
       setLoading(true);
-
-      const res = await api.post("/user-session/get-friend-status", {
-        email,
-      });
-
-      console.log("Friend's Status response: ", res.success);
-
+      const res = await api.post("/user-session/get-friend-status", { email });
+      updateFriendsStatus({ ...res, email });
       setStatus(res);
     } catch (error) {
       console.log("Error occured: ", error);
-
       setStatus({
         success: false,
         message: error?.response?.data?.message || "Something went wrong",
@@ -59,13 +57,13 @@ const EmailInput = ({ isConnectedWithServer }) => {
         </Button>
       </form>
 
-      {status && !status.isOnline && (
+      {status && !status?.data?.isOnline && (
         <div className="mt-4 w-full max-w-md p-4 rounded-2xl border border-gray-200 bg-white shadow-sm">
           <p className="text-red-500 font-medium">{status.message}</p>
         </div>
       )}
     </div>
   );
-};
+}
 
 export default EmailInput;
