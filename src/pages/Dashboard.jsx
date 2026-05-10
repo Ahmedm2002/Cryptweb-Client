@@ -2,10 +2,8 @@ import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import DashboardLayout from "../components/layout/DashboardLayout";
 import Home from "./Home";
-import { Profile } from "../components/profile/Profile";
-import Settings from "../components/settings/Settings";
 import { useAuth } from "../hooks/useAuth";
-import { useSocket, socket } from "../hooks/useSocket";
+import { useSocket, socket } from "../socket/useSocket";
 function Dashboard() {
   const { user } = useAuth();
   const { isConnectedWithServer, connectWithServer } = useSocket();
@@ -15,8 +13,8 @@ function Dashboard() {
   useEffect(() => {
     if (!isConnectedWithServer) {
       socket.connect(() => {
-        connectWithServer()
-      })
+        connectWithServer();
+      });
     }
     return () => {
       socket.disconnect();
@@ -24,12 +22,12 @@ function Dashboard() {
   }, [location.pathname]);
 
   return (
-    <DashboardLayout>
-      {activeView === "home" && <Home />}
-      {/* {activeView === "profile" && <Profile />}
-      {activeView === "settings" && <Settings />} */}
-    </DashboardLayout>
+    <>
+      <DashboardLayout>
+        <Home />
+      </DashboardLayout>
+    </>
   );
-};
+}
 
-export default Dashboard
+export default Dashboard;

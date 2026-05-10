@@ -1,8 +1,14 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import EmailInput from "../components/EmailInput";
-import { useSocket } from "../hooks/useSocket";
+import { useSocket } from "../socket/useSocket";
+import { useFileTransfer } from "../hooks/useFileTransfer";
+import { FileDropzone } from "../components/webrtc/FileDropzone";
+import { TransferList } from "../components/webrtc/TransferList";
+import { PeerConnectionStatus } from "../components/webrtc/PeerConnectionStatus";
+import IncomingRequest from "../components/dashboard/ConnectionStatus/IncomingRequest";
+
 function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -11,33 +17,62 @@ function Home() {
     connectWithServer,
     isConnectedWithFriend,
     friendStatus,
+    dataChannelManager,
+    initiateConnection,
+    incomingRequest,
+    respondToRequest,
   } = useSocket();
 
-  if (friendStatus?.data?.isOnline) {
-    console.log(
-      "Friends is online attempt to connect with the friends via webrtc ",
-    );
-  }
+  const { transfers, sendFile, cancelTransfer, clearCompleted } =
+    useFileTransfer(dataChannelManager);
 
-  if (!user) {
-    navigate("/login");
-  }
+  useEffect(() => {
+    if (!user) {
+      navigate("/login");
+    }
+  }, [user, navigate]);
 
-  if (!isConnectedWithServer) {
-    connectWithServer();
-  }
+  useEffect(() => {
+    if (user && !isConnectedWithServer) {
+      connectWithServer();
+    }
+  }, [user, isConnectedWithServer, connectWithServer]);
+
+  // The offer will be automatically created when connection:result is received from the backend
+
   return (
-    <div className="w-full h-full flex flex-col gap-6 animate-in fade-in duration-300 relative">
+    <div className="w-full h-full flex flex-col items-center gap-6 animate-in fade-in duration-300 relative py-10 px-4">
+      <PeerConnectionStatus isConnected={isConnectedWithFriend} />
+
       {!isConnectedWithFriend && <EmailInput />}
 
-      {friendStatus && friendStatus?.data?.isOnline && (
-        <div className="mt-4 w-full max-w-md p-4 rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <p className="text-green-500 font-medium">
-            Waiting for response from
-          </p>
+      <IncomingRequest request={incomingRequest} onRespond={respondToRequest} />
+
+      {friendStatus &&
+        friendStatus?.data?.isOnline &&
+        !isConnectedWithFriend && (
+          <div className="w-full max-w-md p-4 rounded-xl border border-gray-200 bg-white shadow-sm mt-4 text-center">
+            <p className="text-gray-600 font-medium text-sm animate-pulse">
+              Establishing secure connection with {friendStatus.data.name}...
+            </p>
+          </div>
+        )}
+
+      {isConnectedWithFriend && (
+        <div className="w-full max-w-md flex flex-col gap-4">
+          <FileDropzone
+            onFileSelect={sendFile}
+            disabled={!isConnectedWithFriend || !dataChannelManager}
+          />
+          <TransferList
+            transfers={transfers}
+            onCancel={cancelTransfer}
+            onClearCompleted={clearCompleted}
+          />
         </div>
       )}
     </div>
   );
 }
+
 export default Home;

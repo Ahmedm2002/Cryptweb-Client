@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Button } from "./commons/Button";
 import { api } from "../services/api";
-import { useSocket } from "../hooks/useSocket";
+import { useSocket } from "../socket/useSocket";
 
 function EmailInput() {
   const [email, setEmail] = useState("");
