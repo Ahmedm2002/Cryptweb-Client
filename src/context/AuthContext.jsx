@@ -7,7 +7,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [isInitializing, setIsInitializing] = useState(true);
 
-  const checkSession = async () => {
+  async function checkSession() {
     const token = document.cookie.split("=")[1];
     if (!token) {
       setIsInitializing(false);
@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setIsInitializing(false);
     }
-  };
+  }
   useEffect(() => {
     checkSession();
   }, []);
@@ -62,13 +62,13 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const logout = async () => {
-    const res = await api.post("/logout");
+  async function logout() {
+    const res = await api.post("/user-session/logout");
     if (res && res.success && typeof res !== "string") {
       setUser(null);
     }
     return res;
-  };
+  }
 
   // async function verifyEmail(email, code) {
   //   try {
