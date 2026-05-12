@@ -1,9 +1,13 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { io } from "socket.io-client";
 import { useAuth } from "../hooks/useAuth";
-import { WebRTCPeer } from "./webrtc/peer.js";
+import { RTCPeer } from "./webrtc/peer.js";
 import { SOCKET_EVENTS } from "./socket.events.js";
-import { emitRegisterUser, emitConnectionRequest, emitConnectionResponse } from "./socket.handlers.js";
+import {
+  emitRegisterUser,
+  emitConnectionRequest,
+  emitConnectionResponse,
+} from "./socket.handlers.js";
 
 const SOCKET_SERVER_URL = import.meta.env.VITE_SOCKET_SERVER_URL;
 
@@ -13,113 +17,26 @@ const socket = io(SOCKET_SERVER_URL, {
   transports: ["websocket"],
 });
 
-export function useSocket() {
+function useSocket() {
   const { user } = useAuth();
-  const [isConnectedWithServer, setIsConnectedWithServer] = useState(socket.connected);
+  const [isConnectedWithServer, setIsConnectedWithServer] = useState(
+    socket.connected,
+  );
   const [friendStatus, setFriendStatus] = useState(null);
   const [incomingRequest, setIncomingRequest] = useState(null);
   const [isInitiator, setIsInitiator] = useState(false);
   const [isConnectedWithFriend, setIsConnectedWithFriend] = useState(false);
-
-  const peerRef = useRef(null);
-  const [dataChannelManager, setDataChannelManager] = useState(null);
-
-  const initWebRTC = useCallback((friendEmail) => {
-    if (!user) return;
-    if (peerRef.current) {
-      peerRef.current.cleanup();
-    }
-
-    const peer = new WebRTCPeer(
-      socket,
-      () => {
-        setIsConnectedWithFriend(false);
-        setDataChannelManager(null);
-      },
-      () => {
-        console.log("Data channel received via WebRTC");
-      }
-    );
-
-    peer.setEndpoints(user.email, friendEmail);
-    peerRef.current = peer;
-    setDataChannelManager(peer.getDataChannelManager());
-  }, [user]);
-
-  const connectWithServer = useCallback(() => {
-    setIsConnectedWithServer(true);
-    emitRegisterUser(socket, user);
-  }, [user]);
-
-  const updateFriendsStatus = useCallback((data) => {
-    setIsInitiator(true);
-    setFriendStatus(data);
-    if (data?.data?.isOnline || data?.isOnline) {
-      console.log("Friend is online send him offer to connect");
-      const friendEmail = data.email || data.data?.email;
-      initWebRTC(friendEmail);
-      emitConnectionRequest(socket, user.email, friendEmail);
-    }
-  }, [initWebRTC, user]);
-
-  const onIncomingRequest = useCallback((data) => {
-    console.log("[useSocket] onIncomingRequest received:", data);
-    setIsInitiator(false);
-    setIncomingRequest(data);
-    initWebRTC(data.from);
-  }, [initWebRTC]);
-
+  const [connectionOfferStatus, setConnectionOfferStatus] = useState(null);
+  let peer = null;
   useEffect(() => {
     if (!user) return;
 
     if (!socket.connected) {
       socket.connect();
+      connectWithServer();
     }
 
-    const onConnect = () => {
-      console.log("[useSocket] Socket connected, emitting USER_REGISTER");
-      setIsConnectedWithServer(true);
-      emitRegisterUser(socket, user);
-    };
-    const onDisconnect = () => setIsConnectedWithServer(false);
-
-    const onConnectionResult = (data) => {
-      console.log("[useSocket] onConnectionResult received:", data);
-      if (data.accepted) {
-        setIsConnectedWithFriend(true);
-        if (peerRef.current) {
-          console.log("[useSocket] Request accepted. Creating offer...");
-          peerRef.current.createOffer();
-        } else {
-          console.log("[useSocket] WARNING: peerRef.current is null in onConnectionResult!");
-        }
-      }
-    };
-
-    const onOffer = async (data) => {
-      console.log("[useSocket] onOffer received:", data);
-      if (!peerRef.current) initWebRTC(data.from);
-      setIsConnectedWithFriend(true);
-      await peerRef.current.handleOffer(data.offer);
-    };
-
-    const onAnswer = async (data) => {
-      console.log("[useSocket] onAnswer received:", data);
-      if (peerRef.current) {
-        setIsConnectedWithFriend(true);
-        await peerRef.current.handleAnswer(data.answer);
-      }
-    };
-
-    const onIceCandidate = (data) => {
-      console.log("[useSocket] onIceCandidate received");
-      if (peerRef.current) {
-        peerRef.current.handleIceCandidate(data.candidate);
-      }
-    };
-
-    socket.on(SOCKET_EVENTS.CONNECT, onConnect);
-    socket.on(SOCKET_EVENTS.DISCONNECT, onDisconnect);
+    socket.on(SOCKET_EVENTS.DISCONNECT, disConnect);
     socket.on(SOCKET_EVENTS.CONNECTION_INCOMING, onIncomingRequest);
     socket.on(SOCKET_EVENTS.CONNECTION_RESULT, onConnectionResult);
     socket.on(SOCKET_EVENTS.OFFER, onOffer);
@@ -127,34 +44,86 @@ export function useSocket() {
     socket.on(SOCKET_EVENTS.ICE_CANDIDATE, onIceCandidate);
 
     return () => {
-      socket.off(SOCKET_EVENTS.CONNECT, onConnect);
-      socket.off(SOCKET_EVENTS.DISCONNECT, onDisconnect);
+      socket.off(SOCKET_EVENTS.DISCONNECT, disConnect);
       socket.off(SOCKET_EVENTS.CONNECTION_INCOMING, onIncomingRequest);
       socket.off(SOCKET_EVENTS.CONNECTION_RESULT, onConnectionResult);
       socket.off(SOCKET_EVENTS.OFFER, onOffer);
       socket.off(SOCKET_EVENTS.ANSWER, onAnswer);
       socket.off(SOCKET_EVENTS.ICE_CANDIDATE, onIceCandidate);
     };
-  }, [user, initWebRTC, isInitiator, connectWithServer, onIncomingRequest]);
+  }, [user, isInitiator, connectWithServer, onIncomingRequest]);
 
-  const respondToRequest = useCallback((fromEmail, accepted) => {
-    console.log("[useSocket] respondToRequest called", { fromEmail, accepted });
-    emitConnectionResponse(socket, user.email, fromEmail, accepted);
+  // Socket Event Handler functions
+
+  function onIncomingRequest(data) {
+    console.log("[useSocket] onIncomingRequest received:", data);
+    setIsInitiator(false);
+    setIncomingRequest(data);
+  }
+
+  function connectWithServer() {
+    setIsConnectedWithServer(true);
+    emitRegisterUser(user);
+  }
+
+  function disConnect() {
+    setIsConnectedWithServer(false);
+    setFriendStatus(null);
     setIncomingRequest(null);
-    if (!accepted && peerRef.current) {
-      console.log("[useSocket] Request declined, cleaning up peerRef");
-      peerRef.current.cleanup();
-      peerRef.current = null;
-    }
-  }, [user]);
+    setIsConnectedWithFriend(false);
+    setIsInitiator(false);
+  }
 
-  const initiateConnection = useCallback(async () => {
-    console.log("[useSocket] initiateConnection called. isInitiator:", isInitiator);
-    if (peerRef.current && isInitiator) {
-      await peerRef.current.createOffer();
+  function updateFriendsStatus(data) {
+    setIsInitiator(true);
+    setFriendStatus(data);
+    if (data?.data?.isOnline || data?.isOnline) {
+      console.log("Friend is online send him offer to connect");
+      const friendEmail = data.email || data.data?.email;
+      emitConnectionRequest(user.email, friendEmail);
     }
-  }, [isInitiator]);
+  }
 
+  function respondToRequest(fromEmail, accepted) {
+    emitConnectionResponse(user.email, fromEmail, accepted);
+    setIncomingRequest(null);
+  }
+
+  // webrtc related socket events
+
+  async function onConnectionResult(data) {
+    setIsInitiator(true);
+    console.log("[socket event]  connection response");
+    console.log({ data }, "Data from connection result ");
+
+    // data contains key `accepted` if its true then start initializing webrtc and show the file transfer ui else sshow that user rejected the connection offer
+    setConnectionOfferStatus(data);
+    if (data?.accepted) {
+      peer = null;
+      peer = new RTCPeer(socket, user.email, data.from);
+      await peer.createOffer();
+    }
+  }
+
+  async function onOffer(data) {
+    console.log("[werbrc event] offer data: ", data);
+    // remove old connected peer configs
+    peer = null;
+    // create connection with the new user
+    peer = new RTCPeer(socket, user.email, data.from);
+    await peer.handleOffer(data.offer);
+  }
+
+  async function onAnswer(data) {
+    console.log("[werbrc event] answer: ", data);
+    console.log("on answer called");
+    peer = null;
+    // peer = new RTCPeer(socket, user.email);
+    // peer.handleAnswer(data.answer);
+  }
+  async function onIceCandidate(data) {
+    peer.handleIceCandidate(data.candidate);
+  }
   return {
     isConnectedWithServer,
     isConnectedWithFriend,
@@ -162,11 +131,9 @@ export function useSocket() {
     updateFriendsStatus,
     friendStatus,
     setIsInitiator,
-    initiateConnection,
-    dataChannelManager,
     incomingRequest,
-    respondToRequest
+    respondToRequest,
   };
 }
 
-export { socket };
+export { socket, useSocket };

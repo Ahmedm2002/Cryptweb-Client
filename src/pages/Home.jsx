@@ -17,14 +17,9 @@ function Home() {
     connectWithServer,
     isConnectedWithFriend,
     friendStatus,
-    dataChannelManager,
-    initiateConnection,
     incomingRequest,
     respondToRequest,
   } = useSocket();
-
-  const { transfers, sendFile, cancelTransfer, clearCompleted } =
-    useFileTransfer(dataChannelManager);
 
   useEffect(() => {
     if (!user) {
@@ -42,7 +37,7 @@ function Home() {
 
   return (
     <div className="w-full h-full flex flex-col items-center gap-6 animate-in fade-in duration-300 relative py-10 px-4">
-      <PeerConnectionStatus isConnected={isConnectedWithFriend} />
+      {/* <PeerConnectionStatus isConnected={isConnectedWithFriend} /> */}
 
       {!isConnectedWithFriend && <EmailInput />}
 
@@ -62,7 +57,7 @@ function Home() {
         <div className="w-full max-w-md flex flex-col gap-4">
           <FileDropzone
             onFileSelect={sendFile}
-            disabled={!isConnectedWithFriend || !dataChannelManager}
+            disabled={!isConnectedWithFriend}
           />
           <TransferList
             transfers={transfers}
