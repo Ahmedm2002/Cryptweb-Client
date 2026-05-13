@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Button } from "./commons/Button";
 import { api } from "../services/api";
 import { useSocket } from "../socket/useSocket";
+import { useAuth } from "../hooks/useAuth";
 
 function EmailInput() {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(false);
   const { updateFriendsStatus } = useSocket();
+  const { user } = useAuth();
 
   async function checkFriendsStatus() {
     if (email.trim() === "") return;
@@ -50,7 +52,9 @@ function EmailInput() {
 
         <Button
           type="submit"
-          disabled={!email || email.trim() === "" || loading}
+          disabled={
+            !email || email.trim() === "" || loading || user?.email === email
+          }
           className="w-full sm:w-auto px-8 py-3 rounded-2xl"
         >
           {loading ? "Checking..." : "Connect"}

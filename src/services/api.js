@@ -1,12 +1,12 @@
 import axios from "axios";
 class Api {
   constructor() {
-    this.axios = axios.create({
+    this._axios = axios.create({
       baseURL: import.meta.env.VITE_API_BASE_URL || "/",
       withCredentials: true,
     });
 
-    this.axios.interceptors.request.use((config) => {
+    this._axios.interceptors.request.use((config) => {
       const match = document.cookie.match(
         new RegExp("(^| )accessToken=([^;]+)"),
       );
@@ -15,9 +15,9 @@ class Api {
       }
       return config;
     });
-    this.axios.defaults.withCredentials = true;
+    this._axios.defaults.withCredentials = true;
 
-    this.axios.interceptors.response.use(
+    this._axios.interceptors.response.use(
       (response) => {
         return response;
       },
@@ -30,8 +30,8 @@ class Api {
         ) {
           originalRequest._retry = true;
           try {
-            await this.axios.post("/user-session/get-access-token");
-            return this.axios(originalRequest);
+            await this._axios.post("/user-session/get-access-token");
+            return this._axios(originalRequest);
           } catch (refreshError) {
             return Promise.reject(refreshError);
           }
@@ -48,7 +48,7 @@ class Api {
 
   async get(url, config = {}) {
     try {
-      const response = await this.axios.get(url, config);
+      const response = await this._axios.get(url, config);
       return response.data;
     } catch (error) {
       return this.handleError(error);
@@ -56,7 +56,7 @@ class Api {
   }
   async post(url, data, config = {}) {
     try {
-      const response = await this.axios.post(url, data, config);
+      const response = await this._axios.post(url, data, config);
       return response.data;
     } catch (error) {
       return this.handleError(error);
@@ -64,7 +64,7 @@ class Api {
   }
   async put(url, data, config = {}) {
     try {
-      const response = await this.axios.put(url, data, config);
+      const response = await this._axios.put(url, data, config);
       return response.data;
     } catch (error) {
       return this.handleError(error);
@@ -72,7 +72,7 @@ class Api {
   }
   async delete(url, config = {}) {
     try {
-      const response = await this.axios.delete(url, config);
+      const response = await this._axios.delete(url, config);
       return response.data;
     } catch (error) {
       return this.handleError(error);

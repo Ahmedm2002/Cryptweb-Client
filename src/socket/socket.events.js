@@ -4,10 +4,11 @@ const SOCKET_EVENTS = {
   CONNECTION_INCOMING: "connection:incoming",
   ANSWER: "answer",
   CONNECTION_RESPONSE: "connection:response",
-  CONNECTION_RESULT: "connection:result",
+  // CONNECTION_RESULT: "connection:result",
   ICE_CANDIDATE: "ice-candidate",
   DISCONNECT: "disconnect",
   CONNECT: "connect",
+  OFFER: "offer",
 };
 
 export { SOCKET_EVENTS };

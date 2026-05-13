@@ -17,23 +17,20 @@ class RTCPeer {
     this._localEmail = localEmail;
     this._remotePeerEmail = remotePeerEmail;
     this._rtcConnection = new RTCPeerConnection(ICE_SERVERS);
-
-    this._rtcConnection.onicecandidate = (event) => {
-      console.log("[Webrtc Event] On ice candidate");
-      if (event.candidate) {
-        emitIceCandidate(
-          this._localEmail,
-          this._remotePeerEmail,
-          event.candidate,
-        );
-      }
-    };
   }
 
   async createOffer() {
     console.log("[WebRTCPeer] createOffer started");
     const offer = await this._rtcConnection.createOffer();
     await this._rtcConnection.setLocalDescription(offer);
+    const channel = this._rtcConnection.createDataChannel(
+      "channle:file-transfer",
+      { ordered: true },
+    );
+
+    channel.onopen = () => console.log("Data Channel Opened");
+    channel.onerror = (e) => console.log("Error occured: ", { err });
+    channel.onclose = () => console.log("Data Channle Closed");
 
     console.log("[WebRTCPeer] Emitting WebRTC offer", offer);
     emitWebRTCOffer(this._localEmail, this._remotePeerEmail, offer);
@@ -41,7 +38,7 @@ class RTCPeer {
 
   async handleOffer(offer) {
     console.log(
-      "handleOffer Current state:",
+      "WebRTC Connection Status: ",
       this._rtcConnection.signalingState,
     );
     if (this._rtcConnection.signalingState !== "stable") {
@@ -56,12 +53,12 @@ class RTCPeer {
       new RTCSessionDescription(offer),
     );
     console.log("[WebRTCPeer] Remote description set successfully");
-    this.candidateQueue.flush(this._rtcConnection);
+    // this.candidateQueue.flush(this._rtcConnection);
 
     const answer = await this._rtcConnection.createAnswer();
     await this._rtcConnection.setLocalDescription(answer);
 
-    console.log("[WebRTCPeer] Emitting WebRTC answer");
+    console.log("[WebRTCPeer] Emitting answer");
     emitWebRTCAnswer(this._localEmail, this._remotePeerEmail, answer);
   }
 
@@ -75,7 +72,7 @@ class RTCPeer {
         new RTCSessionDescription(answer),
       );
       console.log("[WebRTCPeer] Answer set successfully as remote description");
-      this.candidateQueue.flush(this._rtcConnection);
+      // this.candidateQueue.flush(this._rtcConnection);
     } else {
       console.warn(
         "[WebRTCPeer] Ignored answer because state is",
@@ -100,19 +97,19 @@ class RTCPeer {
         });
     } else {
       console.log("[WebRTCPeer] Queuing ICE candidate");
-      this.candidateQueue.add(candidate);
+      // this.candidateQueue.add(candidate);
     }
   }
 
-  cleanup() {
-    this.candidateQueue.clear();
-    this.dataChannelManager.cleanup();
-    this.lifecycle.cleanup();
+  listenToDataChannel() {
+    this._rtcConnection.addEventListener("datachannel", (data) => {
+      console.log("Data Channel: ", data);
+    });
   }
 
-  getDataChannelManager() {
-    return this.dataChannelManager;
-  }
+  // cleanup() {
+  //   this._rtcConnection.removeEventListener("datachannel");
+  // }
 }
 
 export { RTCPeer };

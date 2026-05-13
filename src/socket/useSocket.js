@@ -38,22 +38,28 @@ function useSocket() {
 
     socket.on(SOCKET_EVENTS.DISCONNECT, disConnect);
     socket.on(SOCKET_EVENTS.CONNECTION_INCOMING, onIncomingRequest);
-    socket.on(SOCKET_EVENTS.CONNECTION_RESULT, onConnectionResult);
     socket.on(SOCKET_EVENTS.OFFER, onOffer);
     socket.on(SOCKET_EVENTS.ANSWER, onAnswer);
     socket.on(SOCKET_EVENTS.ICE_CANDIDATE, onIceCandidate);
+    socket.on(SOCKET_EVENTS.CONNECTION_RESPONSE, onConnectionResponse);
 
     return () => {
       socket.off(SOCKET_EVENTS.DISCONNECT, disConnect);
       socket.off(SOCKET_EVENTS.CONNECTION_INCOMING, onIncomingRequest);
-      socket.off(SOCKET_EVENTS.CONNECTION_RESULT, onConnectionResult);
+      socket.off(SOCKET_EVENTS.CONNECTION_RESULT, onConnectionResponse);
       socket.off(SOCKET_EVENTS.OFFER, onOffer);
       socket.off(SOCKET_EVENTS.ANSWER, onAnswer);
       socket.off(SOCKET_EVENTS.ICE_CANDIDATE, onIceCandidate);
+      // if (peer) {
+      //   peer?.cleanup();
+      // }
     };
   }, [user, isInitiator, connectWithServer, onIncomingRequest]);
 
   // Socket Event Handler functions
+  function onConnectionResponse(data) {
+    console.log("[useSocket] onConnectionResponse received:", data);
+  }
 
   function onIncomingRequest(data) {
     console.log("[useSocket] onIncomingRequest received:", data);
@@ -91,11 +97,8 @@ function useSocket() {
 
   // webrtc related socket events
 
-  async function onConnectionResult(data) {
+  async function onConnectionResponse(data) {
     setIsInitiator(true);
-    console.log("[socket event]  connection response");
-    console.log({ data }, "Data from connection result ");
-
     // data contains key `accepted` if its true then start initializing webrtc and show the file transfer ui else sshow that user rejected the connection offer
     setConnectionOfferStatus(data);
     if (data?.accepted) {
@@ -106,20 +109,20 @@ function useSocket() {
   }
 
   async function onOffer(data) {
-    console.log("[werbrc event] offer data: ", data);
     // remove old connected peer configs
     peer = null;
     // create connection with the new user
     peer = new RTCPeer(socket, user.email, data.from);
     await peer.handleOffer(data.offer);
+    peer.listenToDataChannel();
   }
 
   async function onAnswer(data) {
     console.log("[werbrc event] answer: ", data);
     console.log("on answer called");
     peer = null;
-    // peer = new RTCPeer(socket, user.email);
-    // peer.handleAnswer(data.answer);
+    peer = new RTCPeer(socket, user.email);
+    peer.handleAnswer(data.answer);
   }
   async function onIceCandidate(data) {
     peer.handleIceCandidate(data.candidate);

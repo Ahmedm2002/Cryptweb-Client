@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { use, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import EmailInput from "../components/EmailInput";
@@ -14,24 +14,18 @@ function Home() {
   const navigate = useNavigate();
   const {
     isConnectedWithServer,
-    connectWithServer,
     isConnectedWithFriend,
     friendStatus,
     incomingRequest,
     respondToRequest,
   } = useSocket();
 
+  if (!user) navigate("/login");
   useEffect(() => {
     if (!user) {
       navigate("/login");
     }
   }, [user, navigate]);
-
-  useEffect(() => {
-    if (user && !isConnectedWithServer) {
-      connectWithServer();
-    }
-  }, [user, isConnectedWithServer, connectWithServer]);
 
   // The offer will be automatically created when connection:result is received from the backend
 

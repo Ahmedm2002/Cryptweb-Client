@@ -7,9 +7,6 @@ import { useSocket, socket } from "../socket/useSocket";
 function Dashboard() {
   const { user } = useAuth();
   const { isConnectedWithServer, connectWithServer } = useSocket();
-  const location = useLocation();
-  const [activeView, setActiveView] = useState("home");
-
   useEffect(() => {
     if (!isConnectedWithServer) {
       socket.connect(() => {
@@ -19,7 +16,7 @@ function Dashboard() {
     return () => {
       socket.disconnect();
     };
-  }, [location.pathname]);
+  });
 
   return (
     <>
