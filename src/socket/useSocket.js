@@ -50,9 +50,6 @@ function useSocket() {
       socket.off(SOCKET_EVENTS.OFFER, onOffer);
       socket.off(SOCKET_EVENTS.ANSWER, onAnswer);
       socket.off(SOCKET_EVENTS.ICE_CANDIDATE, onIceCandidate);
-      // if (peer) {
-      //   peer?.cleanup();
-      // }
     };
   }, [user, isInitiator, connectWithServer, onIncomingRequest]);
 
@@ -62,7 +59,6 @@ function useSocket() {
   }
 
   function onIncomingRequest(data) {
-    console.log("[useSocket] onIncomingRequest received:", data);
     setIsInitiator(false);
     setIncomingRequest(data);
   }
@@ -84,7 +80,6 @@ function useSocket() {
     setIsInitiator(true);
     setFriendStatus(data);
     if (data?.data?.isOnline || data?.isOnline) {
-      console.log("Friend is online send him offer to connect");
       const friendEmail = data.email || data.data?.email;
       emitConnectionRequest(user.email, friendEmail);
     }
@@ -114,14 +109,11 @@ function useSocket() {
     // create connection with the new user
     peer = new RTCPeer(socket, user.email, data.from);
     await peer.handleOffer(data.offer);
-    peer.listenToDataChannel();
   }
 
   async function onAnswer(data) {
-    console.log("[werbrc event] answer: ", data);
-    console.log("on answer called");
-    peer = null;
-    peer = new RTCPeer(socket, user.email);
+    debugger;
+    peer.getInstance();
     peer.handleAnswer(data.answer);
   }
   async function onIceCandidate(data) {

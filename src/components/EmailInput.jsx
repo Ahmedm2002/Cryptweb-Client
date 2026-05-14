@@ -61,6 +61,14 @@ function EmailInput() {
         </Button>
       </form>
 
+      {user.email === email && (
+        <div className="mt-4 w-full max-w-md p-4 rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <p className="text-red-500 font-medium">
+            You cannot connect to yourself
+          </p>
+        </div>
+      )}
+
       {status && !status?.data?.isOnline && (
         <div className="mt-4 w-full max-w-md p-4 rounded-2xl border border-gray-200 bg-white shadow-sm">
           <p className="text-red-500 font-medium">{status.message}</p>

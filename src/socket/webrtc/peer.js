@@ -19,28 +19,37 @@ class RTCPeer {
     this._rtcConnection = new RTCPeerConnection(ICE_SERVERS);
   }
 
+  getInstance() {
+    console.log("Status: ", RTCPeer.instance);
+    if (RTCPeer.instance) {
+      return RTCPeer.instance;
+    }
+  }
+
   async createOffer() {
-    console.log("[WebRTCPeer] createOffer started");
+    console.log("Mn offer banara raha hn");
     const offer = await this._rtcConnection.createOffer();
     await this._rtcConnection.setLocalDescription(offer);
-    const channel = this._rtcConnection.createDataChannel(
-      "channle:file-transfer",
-      { ordered: true },
+    console.log(
+      "Mera status after creation and setting offer: ",
+      this._rtcConnection,
     );
+    // const channel = this._rtcConnection.createDataChannel(
+    //   "channle:file-transfer",
+    //   { ordered: true },
+    // );
 
-    channel.onopen = () => console.log("Data Channel Opened");
-    channel.onerror = (e) => console.log("Error occured: ", { err });
-    channel.onclose = () => console.log("Data Channle Closed");
+    // channel.onopen = () => console.log("Data Channel Opened");
+    // channel.onerror = (e) => console.log("Error occured: ", { err });
+    // channel.onclose = () => console.log("Data Channle Closed");
 
-    console.log("[WebRTCPeer] Emitting WebRTC offer", offer);
+    console.log("Mn offer bejh raha hn");
     emitWebRTCOffer(this._localEmail, this._remotePeerEmail, offer);
   }
 
   async handleOffer(offer) {
-    console.log(
-      "WebRTC Connection Status: ",
-      this._rtcConnection.signalingState,
-    );
+    console.log("Offer aye ha mere pas: ", offer);
+    console.log("Mera Status: ", this._rtcConnection);
     if (this._rtcConnection.signalingState !== "stable") {
       console.warn(
         "Ignoring offer, state is not stable:",
@@ -52,33 +61,27 @@ class RTCPeer {
     await this._rtcConnection.setRemoteDescription(
       new RTCSessionDescription(offer),
     );
-    console.log("[WebRTCPeer] Remote description set successfully");
+    console.log(
+      "Mera Status after setting remote description: ",
+      this._rtcConnection,
+    );
     // this.candidateQueue.flush(this._rtcConnection);
 
     const answer = await this._rtcConnection.createAnswer();
     await this._rtcConnection.setLocalDescription(answer);
-
+    console.log(
+      "anser create ker dyia or set b ker dyia: ",
+      this._rtcConnection,
+    );
     console.log("[WebRTCPeer] Emitting answer");
     emitWebRTCAnswer(this._localEmail, this._remotePeerEmail, answer);
   }
 
   async handleAnswer(answer) {
-    console.log(
-      "[WebRTCPeer] handleAnswer started. Current state:",
-      this._rtcConnection.signalingState,
+    console.log(this._rtcConnection);
+    await this._rtcConnection.setRemoteDescription(
+      new RTCSessionDescription(answer),
     );
-    if (this._rtcConnection.signalingState === "have-local-offer") {
-      await this._rtcConnection.setRemoteDescription(
-        new RTCSessionDescription(answer),
-      );
-      console.log("[WebRTCPeer] Answer set successfully as remote description");
-      // this.candidateQueue.flush(this._rtcConnection);
-    } else {
-      console.warn(
-        "[WebRTCPeer] Ignored answer because state is",
-        this._rtcConnection.signalingState,
-      );
-    }
   }
 
   handleIceCandidate(candidate) {
@@ -99,12 +102,6 @@ class RTCPeer {
       console.log("[WebRTCPeer] Queuing ICE candidate");
       // this.candidateQueue.add(candidate);
     }
-  }
-
-  listenToDataChannel() {
-    this._rtcConnection.addEventListener("datachannel", (data) => {
-      console.log("Data Channel: ", data);
-    });
   }
 
   // cleanup() {
