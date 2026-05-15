@@ -12,6 +12,7 @@ import { Loader } from "./components/commons/Loader.jsx";
 import { Product } from "./pages/Product.jsx";
 import { Login } from "./pages/Login.jsx";
 import { Signup } from "./pages/Signup.jsx";
+import { SocketProvider } from "./context/SocketContext.jsx";
 // import { VerifyEmail } from "./pages/VerifyEmail.jsx";
 import { Security } from "./pages/Security.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
@@ -116,7 +117,9 @@ const AppContent = () => {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <SocketProvider>
+        <AppContent />
+      </SocketProvider>
     </AuthProvider>
   );
 }

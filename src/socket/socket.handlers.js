@@ -1,5 +1,5 @@
 import { SOCKET_EVENTS } from "./socket.events.js";
-import { socket } from "../socket/useSocket.js";
+import { socket } from "../socket/socket.js";
 
 // console.log("Socket: ", socket);
 

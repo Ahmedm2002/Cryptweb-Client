@@ -18,6 +18,7 @@ const FileTransfer = ({ friendEmail, status }) => {
     sendSecuredFile,
     downloadFile,
     clearFile,
+    transferComplete,
   } = useFileTransfer(friendEmail, user);
 
   if (!friendEmail) {
@@ -45,7 +46,7 @@ const FileTransfer = ({ friendEmail, status }) => {
 
         <FileTransferIncoming
           incomingFile={incomingFile}
-          // transferComplete={transferComplete}
+          transferComplete={transferComplete}
           downloadFile={downloadFile}
         />
 
@@ -71,7 +72,7 @@ const FileTransfer = ({ friendEmail, status }) => {
           <div className="mt-10 flex flex-col sm:flex-row items-center gap-6">
             <button
               onClick={sendSecuredFile}
-              disabled={!selectedFile || !status?.isOnline}
+              disabled={!selectedFile}
               className="w-full py-4 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-[1.25rem] font-bold text-lg shadow-xl shadow-indigo-100 hover:shadow-indigo-200 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:grayscale disabled:hover:translate-y-0 transition-all duration-300 flex items-center justify-center gap-2"
             >
               <Zap className="w-5 h-5 fill-current" />

@@ -1,8 +1,8 @@
-export const FileTransferProgress = ({ 
-  transferProgress, 
-  transferSpeed, 
-  incomingFile, 
-  selectedFile 
+export const FileTransferProgress = ({
+  transferProgress,
+  transferSpeed,
+  incomingFile,
+  selectedFile
 }) => {
   return (
     <div className="flex flex-col items-center text-center w-full max-w-md">
@@ -38,7 +38,7 @@ export const FileTransferProgress = ({
         {incomingFile ? "Receiving..." : "Sending..."}
       </h4>
       <p className="text-gray-500 font-medium">
-        {transferSpeed.toFixed(2)} MB/s •{" "}
+        {transferSpeed ? transferSpeed.toFixed(2) : 0} MB/s •{" "}
         {incomingFile ? incomingFile.name : selectedFile?.name}
       </p>
     </div>

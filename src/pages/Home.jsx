@@ -1,12 +1,9 @@
-import React, { use, useEffect } from "react";
+import React, { useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import EmailInput from "../components/EmailInput";
 import { useSocket } from "../socket/useSocket";
-import { useFileTransfer } from "../hooks/useFileTransfer";
-import { FileDropzone } from "../components/webrtc/FileDropzone";
-import { TransferList } from "../components/webrtc/TransferList";
-import { PeerConnectionStatus } from "../components/webrtc/PeerConnectionStatus";
+import FileTransfer from "../components/FileTransfer";
 import IncomingRequest from "../components/dashboard/ConnectionStatus/IncomingRequest";
 
 function Home() {
@@ -27,11 +24,8 @@ function Home() {
     }
   }, [user, navigate]);
 
-  // The offer will be automatically created when connection:result is received from the backend
-
   return (
     <div className="w-full h-full flex flex-col items-center gap-6 animate-in fade-in duration-300 relative py-10 px-4">
-      {/* <PeerConnectionStatus isConnected={isConnectedWithFriend} /> */}
 
       {!isConnectedWithFriend && <EmailInput />}
 
@@ -48,17 +42,10 @@ function Home() {
         )}
 
       {isConnectedWithFriend && (
-        <div className="w-full max-w-md flex flex-col gap-4">
-          <FileDropzone
-            onFileSelect={sendFile}
-            disabled={!isConnectedWithFriend}
-          />
-          <TransferList
-            transfers={transfers}
-            onCancel={cancelTransfer}
-            onClearCompleted={clearCompleted}
-          />
-        </div>
+        <FileTransfer 
+          friendEmail={friendStatus?.email || friendStatus?.data?.email || incomingRequest?.from} 
+          status={friendStatus} 
+        />
       )}
     </div>
   );
