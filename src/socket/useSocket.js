@@ -27,7 +27,7 @@ function useSocket() {
   const [isInitiator, setIsInitiator] = useState(false);
   const [isConnectedWithFriend, setIsConnectedWithFriend] = useState(false);
   const [connectionOfferStatus, setConnectionOfferStatus] = useState(null);
-  let peer = null;
+  let peerRef = useRef(null);
   useEffect(() => {
     if (!user) return;
 
@@ -96,28 +96,27 @@ function useSocket() {
     setIsInitiator(true);
     // data contains key `accepted` if its true then start initializing webrtc and show the file transfer ui else sshow that user rejected the connection offer
     setConnectionOfferStatus(data);
+    console.log("Function invoked on connection response: ", data);
     if (data?.accepted) {
-      peer = null;
-      peer = new RTCPeer(socket, user.email, data.from);
-      await peer.createOffer();
+      peerRef.current = null;
+      peerRef.current = new RTCPeer(socket, user.email, data.from);
+      await peerRef.current.createOffer();
     }
   }
 
   async function onOffer(data) {
     // remove old connected peer configs
-    peer = null;
+    peerRef.current = null;
     // create connection with the new user
-    peer = new RTCPeer(socket, user.email, data.from);
-    await peer.handleOffer(data.offer);
+    peerRef.current = new RTCPeer(socket, user.email, data.from);
+    await peerRef.current.handleOffer(data.offer);
   }
 
   async function onAnswer(data) {
-    debugger;
-    peer.getInstance();
-    peer.handleAnswer(data.answer);
+    peerRef.current.handleAnswer(data.answer);
   }
   async function onIceCandidate(data) {
-    peer.handleIceCandidate(data.candidate);
+    peerRef.current.handleIceCandidate(data.candidate);
   }
   return {
     isConnectedWithServer,

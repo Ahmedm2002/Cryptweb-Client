@@ -12,6 +12,7 @@ const ICE_SERVERS = {
 };
 
 class RTCPeer {
+  static offerSent = false;
   constructor(socket, localEmail, remotePeerEmail) {
     this._socket = socket;
     this._localEmail = localEmail;
@@ -19,21 +20,12 @@ class RTCPeer {
     this._rtcConnection = new RTCPeerConnection(ICE_SERVERS);
   }
 
-  getInstance() {
-    console.log("Status: ", RTCPeer.instance);
-    if (RTCPeer.instance) {
-      return RTCPeer.instance;
-    }
-  }
-
   async createOffer() {
-    console.log("Mn offer banara raha hn");
+    if (RTCPeer.offerSent) return;
+    console.log("Offer not send so sending it");
     const offer = await this._rtcConnection.createOffer();
     await this._rtcConnection.setLocalDescription(offer);
-    console.log(
-      "Mera status after creation and setting offer: ",
-      this._rtcConnection,
-    );
+
     // const channel = this._rtcConnection.createDataChannel(
     //   "channle:file-transfer",
     //   { ordered: true },
@@ -43,13 +35,11 @@ class RTCPeer {
     // channel.onerror = (e) => console.log("Error occured: ", { err });
     // channel.onclose = () => console.log("Data Channle Closed");
 
-    console.log("Mn offer bejh raha hn");
     emitWebRTCOffer(this._localEmail, this._remotePeerEmail, offer);
+    RTCPeer.offerSent = true;
   }
 
   async handleOffer(offer) {
-    console.log("Offer aye ha mere pas: ", offer);
-    console.log("Mera Status: ", this._rtcConnection);
     if (this._rtcConnection.signalingState !== "stable") {
       console.warn(
         "Ignoring offer, state is not stable:",
@@ -61,24 +51,17 @@ class RTCPeer {
     await this._rtcConnection.setRemoteDescription(
       new RTCSessionDescription(offer),
     );
-    console.log(
-      "Mera Status after setting remote description: ",
-      this._rtcConnection,
-    );
-    // this.candidateQueue.flush(this._rtcConnection);
 
     const answer = await this._rtcConnection.createAnswer();
     await this._rtcConnection.setLocalDescription(answer);
-    console.log(
-      "anser create ker dyia or set b ker dyia: ",
-      this._rtcConnection,
-    );
-    console.log("[WebRTCPeer] Emitting answer");
     emitWebRTCAnswer(this._localEmail, this._remotePeerEmail, answer);
   }
 
   async handleAnswer(answer) {
-    console.log(this._rtcConnection);
+    console.log(
+      "Ice Connection State: ",
+      this._rtcConnection.iceConnectionState,
+    );
     await this._rtcConnection.setRemoteDescription(
       new RTCSessionDescription(answer),
     );
@@ -100,13 +83,8 @@ class RTCPeer {
         });
     } else {
       console.log("[WebRTCPeer] Queuing ICE candidate");
-      // this.candidateQueue.add(candidate);
     }
   }
-
-  // cleanup() {
-  //   this._rtcConnection.removeEventListener("datachannel");
-  // }
 }
 
 export { RTCPeer };
