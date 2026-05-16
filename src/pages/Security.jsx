@@ -12,7 +12,6 @@ import { Button } from "../components/commons/Button.jsx";
 export const Security = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col text-gray-900 font-sans">
-      {/* Hero */}
       <section
         id="security-hero"
         className="relative overflow-hidden pt-20 pb-24 sm:pt-24 sm:pb-32 border-b border-gray-100 bg-white"
@@ -31,8 +30,6 @@ export const Security = () => {
           </div>
         </div>
       </section>
-
-      {/* Architecture */}
       <section
         id="architecture"
         className="py-20 bg-gray-50 border-b border-gray-100"
@@ -105,7 +102,6 @@ export const Security = () => {
         </div>
       </section>
 
-      {/* Zero Knowledge */}
       <section
         id="zero-knowledge"
         className="py-24 bg-gray-900 border-t-8 border-indigo-600 text-white"
@@ -154,8 +150,6 @@ export const Security = () => {
           </div>
         </div>
       </section>
-
-      {/* CTA */}
       <section
         id="security-cta"
         className="py-24 bg-indigo-50 border-t border-indigo-100 flex-grow"
@@ -179,7 +173,6 @@ export const Security = () => {
         </div>
       </section>
 
-      {/* Footer */}
       <footer id="footer" className="bg-white py-12 border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="text-2xl font-black tracking-tight text-gray-900">

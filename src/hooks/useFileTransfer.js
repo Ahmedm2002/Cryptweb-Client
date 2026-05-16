@@ -29,7 +29,6 @@ function useFileTransfer(friendEmail, user) {
   };
 
   const onMessage = useCallback((msgStr) => {
-    debugger
     try {
       const msg = JSON.parse(msgStr);
 
@@ -57,9 +56,7 @@ function useFileTransfer(friendEmail, user) {
           setTransferComplete(true);
           const blob = assembleBlob(incomingChunks.current);
           setReceivedBlob(blob);
-
-          // Optionally, you can trigger auto-download here, but the UI expects 
-          // the user to click the download button which will call downloadFile()
+          downloadFile()
         }
       }
     } catch (err) {
@@ -80,10 +77,9 @@ function useFileTransfer(friendEmail, user) {
     setTransferProgress(0);
     setTransferComplete(false);
 
-    const CHUNK_SIZE = 16384; // 16KB is safe for WebRTC data channels
+    const CHUNK_SIZE = 16384;
     const totalChunks = Math.ceil(selectedFile.size / CHUNK_SIZE);
 
-    // Send metadata to prepare receiver
     sendDataViaWebRTC(
       JSON.stringify({
         type: "metadata",
@@ -101,8 +97,6 @@ function useFileTransfer(friendEmail, user) {
 
     reader.onload = (e) => {
       const arrayBuffer = e.target.result;
-
-      // Convert ArrayBuffer to base64
       let binary = "";
       const bytes = new Uint8Array(arrayBuffer);
       for (let i = 0; i < bytes.byteLength; i++) {
@@ -127,7 +121,6 @@ function useFileTransfer(friendEmail, user) {
       setTransferProgress(progress);
 
       if (offset < selectedFile.size) {
-        // Read the next chunk with a slight delay to allow buffer to drain
         setTimeout(readNextChunk, 5);
       } else {
         setIsTransferring(false);
@@ -156,8 +149,6 @@ function useFileTransfer(friendEmail, user) {
   };
 
   const downloadFile = () => {
-    if (!receivedBlob || !incomingFile) return;
-
     const url = URL.createObjectURL(receivedBlob);
     const a = document.createElement("a");
     a.href = url;
@@ -166,8 +157,6 @@ function useFileTransfer(friendEmail, user) {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-
-    // Reset everything after downloading
     clearFile();
   };
 

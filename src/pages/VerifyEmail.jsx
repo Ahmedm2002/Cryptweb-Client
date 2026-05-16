@@ -57,7 +57,7 @@ export const VerifyEmail = () => {
       } else {
         setError(
           res?.message ||
-            "Verification failed. The code may be incorrect or expired.",
+          "Verification failed. The code may be incorrect or expired.",
         );
       }
     } catch (err) {

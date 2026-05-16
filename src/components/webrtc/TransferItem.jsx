@@ -6,10 +6,10 @@ export function TransferItem({ transfer, onCancel }) {
   const isError = transfer.status === "error";
   const isCancelled = transfer.status === "cancelled";
   const isTransferring = transfer.status === "transferring";
-  
+
   const fileSizeMb = (transfer.fileSize / 1024 / 1024).toFixed(2);
   const receivedMb = (transfer.receivedSize / 1024 / 1024).toFixed(2);
-  
+
   let eta = "--";
   if (isTransferring && transfer.speed > 0) {
     const remainingSizeMb = fileSizeMb - receivedMb;
@@ -28,7 +28,7 @@ export function TransferItem({ transfer, onCancel }) {
             {transfer.fileName}
           </p>
           {(isTransferring || transfer.status === "pending") && (
-            <button 
+            <button
               onClick={onCancel}
               className="text-gray-400 hover:text-red-500 ml-2"
               title="Cancel Transfer"
@@ -37,21 +37,17 @@ export function TransferItem({ transfer, onCancel }) {
             </button>
           )}
         </div>
-        
-        {/* Progress Bar */}
         <div className="w-full bg-gray-200 rounded-full h-1.5 mb-1.5 overflow-hidden">
-          <div 
-            className={`h-1.5 rounded-full ${
-              isError || isCancelled ? "bg-red-500" : isCompleted ? "bg-green-500" : "bg-blue-500"
-            }`} 
+          <div
+            className={`h-1.5 rounded-full ${isError || isCancelled ? "bg-red-500" : isCompleted ? "bg-green-500" : "bg-blue-500"
+              }`}
             style={{ width: `${transfer.progress || 0}%` }}
           ></div>
         </div>
-        
-        {/* Stats */}
+
         <div className="flex justify-between text-xs text-gray-500">
           <span>
-            {isCompleted ? "Completed" : isError ? "Failed" : isCancelled ? "Cancelled" : `${transfer.progress || 0}%`} 
+            {isCompleted ? "Completed" : isError ? "Failed" : isCancelled ? "Cancelled" : `${transfer.progress || 0}%`}
             {" • "}
             {receivedMb} / {fileSizeMb} MB
           </span>

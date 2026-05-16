@@ -1,4 +1,4 @@
-import { UploadCloud, Zap } from "lucide-react";
+import { Zap } from "lucide-react";
 import { useAuth } from "../hooks/useAuth.js";
 import { useFileTransfer } from "../hooks/useFileTransfer.js";
 import { FileTransferIncoming } from "./file-transfer/FileTransferIncoming";
@@ -20,22 +20,6 @@ const FileTransfer = ({ friendEmail, status }) => {
     clearFile,
     transferComplete,
   } = useFileTransfer(friendEmail, user);
-
-  if (!friendEmail) {
-    return (
-      <div className="bg-white rounded-[2.5rem] p-12 border border-gray-100 shadow-2xl flex flex-col items-center justify-center min-h-[400px] text-center max-w-2xl mx-auto">
-        <div className="w-20 h-20 bg-gray-50 rounded-3xl flex items-center justify-center mb-6">
-          <UploadCloud className="w-10 h-10 text-gray-300" />
-        </div>
-        <h3 className="text-2xl font-bold text-gray-900 mb-2 font-display">
-          File Transfer
-        </h3>
-        <p className="text-gray-500">
-          Connect to a friend to start secure sharing.
-        </p>
-      </div>
-    );
-  }
 
   return (
     <div className="w-full max-w-4xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
