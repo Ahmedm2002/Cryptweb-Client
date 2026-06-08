@@ -6,17 +6,6 @@ class Api {
       withCredentials: true,
     });
 
-    this._axios.interceptors.request.use((config) => {
-      const match = document.cookie.match(
-        new RegExp("(^| )accessToken=([^;]+)"),
-      );
-      if (match && match[2]) {
-        config.headers.Authorization = `Bearer ${match[2]}`;
-      }
-      return config;
-    });
-    this._axios.defaults.withCredentials = true;
-
     this._axios.interceptors.response.use(
       (response) => {
         return response;
