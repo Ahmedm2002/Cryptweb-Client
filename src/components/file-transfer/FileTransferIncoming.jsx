@@ -1,28 +1,25 @@
-import { File, Download } from "lucide-react";
+import { Download } from "lucide-react";
 
 export const FileTransferIncoming = ({ incomingFile, transferComplete, downloadFile }) => {
   if (!incomingFile || !transferComplete) return null;
 
   return (
-    <div className="mb-6 p-6 bg-green-50 rounded-3xl border border-green-100 flex items-center justify-between animate-in slide-in-from-top-4">
-      <div className="flex items-center gap-4">
-        <div className="w-12 h-12 bg-green-500 rounded-2xl flex items-center justify-center text-white">
-          <File className="w-6 h-6" />
-        </div>
-        <div>
-          <p className="font-bold text-green-900">
-            {incomingFile.name} received!
+    <div className="mb-4 p-4 bg-white border border-gray-200 rounded-lg flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div className="text-sm">
+          <p className="font-medium text-gray-900">
+            {incomingFile.name}
           </p>
-          <p className="text-sm text-green-700">
+          <p className="text-xs text-gray-500">
             {(incomingFile.size / 1024 / 1024).toFixed(2)} MB
           </p>
         </div>
       </div>
       <button
         onClick={downloadFile}
-        className="px-6 py-2 bg-green-600 text-white rounded-full font-bold hover:bg-green-700 transition-colors flex items-center gap-2"
+        className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors flex items-center gap-2"
       >
-        <Download className="w-4 h-4" /> Download
+        <Download size={14} /> Download
       </button>
     </div>
   );

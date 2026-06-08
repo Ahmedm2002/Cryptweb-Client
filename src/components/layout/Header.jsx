@@ -1,9 +1,8 @@
 import { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Menu } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 
-export const Header = ({ onLogoutConfirm, onMenuClick }) => {
+export const Header = ({ onLogoutConfirm }) => {
   const { user } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -23,32 +22,38 @@ export const Header = ({ onLogoutConfirm, onMenuClick }) => {
   }, [dropdownOpen]);
 
   return (
-    <header className="h-16 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-40">
-      <div className="flex items-center gap-4">
-        <button
-          className="lg:hidden text-gray-500 hover:text-gray-900 focus:outline-none"
-          onClick={onMenuClick}
-        >
-          <Menu size={24} />
-        </button>
-        <Link
-          to="/home"
-          className="text-2xl font-black tracking-tight text-gray-900 focus:outline-none rounded"
-        >
-          CRYPTWEB
-        </Link>
-      </div>
+    <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-40">
+      <span className="text-lg font-bold tracking-tight text-gray-900">
+        CRYPTWEB
+      </span>
 
-      <div
-        className="relative flex flow-row items-center justify-center gap-2"
-        ref={dropdownRef}
-      >
-        <span className="text-md font-semibold text-gray-700 hidden sm:block">
-          {user?.name || "User"}
-        </span>
-        <div className="w-10 h-10 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
-          {(user?.name || "U").charAt(0).toUpperCase()}
-        </div>
+      <div className="relative" ref={dropdownRef}>
+        <button
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+        >
+          <span className="text-sm font-medium text-gray-700 hidden sm:block">
+            {user?.name || "User"}
+          </span>
+          <div className="w-8 h-8 rounded-full bg-gray-700 text-white flex items-center justify-center font-semibold text-xs">
+            {(user?.name || "U").charAt(0).toUpperCase()}
+          </div>
+        </button>
+
+        {dropdownOpen && (
+          <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
+            <button
+              onClick={() => {
+                setDropdownOpen(false);
+                onLogoutConfirm();
+              }}
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <LogOut size={16} className="text-gray-400" />
+              Logout
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );

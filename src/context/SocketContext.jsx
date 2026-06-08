@@ -13,32 +13,36 @@ export const SocketContext = createContext(null);
 
 export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
-  const [isConnectedWithServer, setIsConnectedWithServer] = useState(
-    socket.connected,
-  );
+  const [isConnectedWithServer, setIsConnectedWithServer] = useState(socket.connected);
   const [friendStatus, setFriendStatus] = useState(null);
   const [incomingRequest, setIncomingRequest] = useState(null);
   const [isInitiator, setIsInitiator] = useState(false);
   const [isConnectedWithFriend, setIsConnectedWithFriend] = useState(false);
-  const [connectionOfferStatus, setConnectionOfferStatus] = useState(null);
-  let peerRef = useRef(null);
+  const [connectionError, setConnectionError] = useState(null);
+  const [connectedFriend, setConnectedFriend] = useState(null);
+  const peerRef = useRef(null);
+  const pendingFriendInfo = useRef(null);
 
   useEffect(() => {
     if (!user) return;
 
     function handleConnect() {
-      console.log("[SocketContext] Connected to server");
       setIsConnectedWithServer(true);
       emitRegisterUser(user);
     }
 
     function handleDisconnect() {
-      console.log("[SocketContext] Disconnected from server");
       setIsConnectedWithServer(false);
       setFriendStatus(null);
       setIncomingRequest(null);
       setIsConnectedWithFriend(false);
       setIsInitiator(false);
+      setConnectionError("Disconnected from server");
+      setConnectedFriend(null);
+      if (peerRef.current) {
+        peerRef.current.close();
+        peerRef.current = null;
+      }
     }
 
     socket.on(SOCKET_EVENTS.CONNECT, handleConnect);
@@ -63,18 +67,31 @@ export const SocketProvider = ({ children }) => {
       socket.off(SOCKET_EVENTS.OFFER, onOffer);
       socket.off(SOCKET_EVENTS.ANSWER, onAnswer);
       socket.off(SOCKET_EVENTS.ICE_CANDIDATE, onIceCandidate);
+      if (peerRef.current) {
+        peerRef.current.close();
+        peerRef.current = null;
+      }
     };
   }, [user]);
 
-  // Socket Event Handler functions
   function onIncomingRequest(data) {
     setIsInitiator(false);
     setIncomingRequest(data);
+    pendingFriendInfo.current = {
+      email: data.from,
+      name: data.fromName || data.from,
+    };
   }
 
   function updateFriendsStatus(data) {
     setIsInitiator(true);
     setFriendStatus(data);
+    setConnectionError(null);
+    if (!data) return;
+    pendingFriendInfo.current = {
+      email: data.email || data.data?.email,
+      name: data.data?.name || data.email || data.data?.email,
+    };
     if (data?.data?.isOnline || data?.isOnline) {
       const friendEmail = data.email || data.data?.email;
       emitConnectionRequest(user.email, friendEmail);
@@ -84,28 +101,45 @@ export const SocketProvider = ({ children }) => {
   function respondToRequest(fromEmail, accepted) {
     emitConnectionResponse(user.email, fromEmail, accepted);
     setIncomingRequest(null);
+    if (accepted) {
+      setConnectionError(null);
+    }
   }
 
-  // webrtc related socket events
+  function onPeerConnected() {
+    setIsConnectedWithFriend(true);
+    if (pendingFriendInfo.current) {
+      setConnectedFriend({ ...pendingFriendInfo.current });
+    }
+  }
+
+  function onPeerError(msg) {
+    setConnectionError(msg);
+    setIsConnectedWithFriend(false);
+    setConnectedFriend(null);
+  }
 
   async function onConnectionResponse(data) {
     setIsInitiator(true);
-    setConnectionOfferStatus(data);
-    console.log("Function invoked on connection response: ", data);
     if (data?.accepted) {
+      setConnectionError(null);
       peerRef.current = null;
-      peerRef.current = new RTCPeer(socket, user.email, data.from, () => {
-        setIsConnectedWithFriend(true);
-      });
+      peerRef.current = new RTCPeer(
+        socket, user.email, data.from,
+        onPeerConnected,
+        onPeerError,
+      );
       await peerRef.current.createOffer();
     }
   }
 
   async function onOffer(data) {
     peerRef.current = null;
-    peerRef.current = new RTCPeer(socket, user.email, data.from, () => {
-      setIsConnectedWithFriend(true);
-    });
+    peerRef.current = new RTCPeer(
+      socket, user.email, data.from,
+      onPeerConnected,
+      onPeerError,
+    );
     await peerRef.current.handleOffer(data.offer);
   }
 
@@ -134,6 +168,18 @@ export const SocketProvider = ({ children }) => {
     return false;
   }
 
+  function disconnectFromFriend() {
+    if (peerRef.current) {
+      peerRef.current.close();
+      peerRef.current = null;
+    }
+    setIsConnectedWithFriend(false);
+    setFriendStatus(null);
+    setIsInitiator(false);
+    setConnectionError(null);
+    setConnectedFriend(null);
+  }
+
   return (
     <SocketContext.Provider
       value={{
@@ -146,6 +192,10 @@ export const SocketProvider = ({ children }) => {
         respondToRequest,
         subscribeToDataChannel,
         sendDataViaWebRTC,
+        connectionError,
+        setConnectionError,
+        disconnectFromFriend,
+        connectedFriend,
       }}
     >
       {children}
