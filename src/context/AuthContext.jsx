@@ -8,13 +8,6 @@ export const AuthProvider = ({ children }) => {
   const [isInitializing, setIsInitializing] = useState(true);
 
   async function checkSession() {
-    const token = document.cookie.split("=")[1];
-    if (!token) {
-      setIsInitializing(false);
-      setUser(null);
-      return;
-    }
-
     try {
       const res = await api.get("/user-session/1");
       if (res && res.success) {
