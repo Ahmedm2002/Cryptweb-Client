@@ -111,7 +111,7 @@ export const FileTransferDropzone = ({
             </div>
             <div className="flex items-center gap-1.5">
               <Shield size={12} />
-              <span>Direct P2P transfer</span>
+              <span>Direct transfer</span>
             </div>
           </div>
           <p className="text-xs text-gray-400 mt-2">

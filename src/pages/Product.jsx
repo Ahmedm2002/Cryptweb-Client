@@ -22,7 +22,7 @@ export const Product = () => {
           <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-8">
             <div className="max-w-3xl lg:w-1/2">
               <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900 mb-6 leading-tight">
-                Secure P2P File Sharing, <br />
+                Secure Direct File Sharing, <br />
                 <span className="text-indigo-600">Zero Compromise.</span>
               </h1>
               <p className="text-lg sm:text-xl text-gray-600 mb-8 leading-relaxed font-medium">

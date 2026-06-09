@@ -92,13 +92,16 @@ export const SocketProvider = ({ children }) => {
       email: data.email || data.data?.email,
       name: data.data?.name || data.email || data.data?.email,
     };
+    console.log(`[WebRTC] Friend status update: email=${pendingFriendInfo.current.email}, name=${pendingFriendInfo.current.name}, isOnline=${data?.data?.isOnline || data?.isOnline}`);
     if (data?.data?.isOnline || data?.isOnline) {
       const friendEmail = data.email || data.data?.email;
+      console.log(`[WebRTC] Friend is online, emitting connection request to ${friendEmail}`);
       emitConnectionRequest(user.email, friendEmail);
     }
   }
 
   function respondToRequest(fromEmail, accepted) {
+    console.log(`[WebRTC] Responding to request from ${fromEmail}: accepted=${accepted}`);
     emitConnectionResponse(user.email, fromEmail, accepted);
     setIncomingRequest(null);
     if (accepted) {
@@ -107,6 +110,7 @@ export const SocketProvider = ({ children }) => {
   }
 
   function onPeerConnected() {
+    console.log(`[WebRTC] onPeerConnected callback fired`);
     setIsConnectedWithFriend(true);
     if (pendingFriendInfo.current) {
       setConnectedFriend({ ...pendingFriendInfo.current });
@@ -114,6 +118,7 @@ export const SocketProvider = ({ children }) => {
   }
 
   function onPeerError(msg) {
+    console.log(`[WebRTC] onPeerError callback fired: ${msg}`);
     setConnectionError(msg);
     setIsConnectedWithFriend(false);
     setConnectedFriend(null);
@@ -121,20 +126,26 @@ export const SocketProvider = ({ children }) => {
 
   async function onConnectionResponse(data) {
     setIsInitiator(true);
+    console.log(`[WebRTC] Connection response received: accepted=${data?.accepted}, from=${data?.from}`);
     if (data?.accepted) {
       setConnectionError(null);
       peerRef.current = null;
+      console.log(`[WebRTC] Creating RTCPeer as initiator for ${data.from}`);
       peerRef.current = new RTCPeer(
         socket, user.email, data.from,
         onPeerConnected,
         onPeerError,
       );
       await peerRef.current.createOffer();
+    } else {
+      console.log(`[WebRTC] Connection request was rejected by ${data?.from}`);
     }
   }
 
   async function onOffer(data) {
+    console.log(`[WebRTC] Offer received from ${data.from}`);
     peerRef.current = null;
+    console.log(`[WebRTC] Creating RTCPeer as responder for ${data.from}`);
     peerRef.current = new RTCPeer(
       socket, user.email, data.from,
       onPeerConnected,
@@ -144,6 +155,7 @@ export const SocketProvider = ({ children }) => {
   }
 
   async function onAnswer(data) {
+    console.log(`[WebRTC] Answer received from ${data.from}`);
     if (peerRef.current) {
       peerRef.current.handleAnswer(data.answer);
     }

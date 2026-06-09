@@ -43,7 +43,7 @@ export const Signup = () => {
             Register
           </h2>
           <p className="mt-2 text-sm text-gray-500">
-            Join Cryptweb for secure P2P sharing
+            Join Cryptweb for secure sharing
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>

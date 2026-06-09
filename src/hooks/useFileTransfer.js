@@ -1,13 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useSocket } from "../socket/useSocket";
-import {
-  saveChunk, saveMetadata, getMetadata,
-  getPendingDownloads, getIncompleteTransfers,
-  clearTransfer, updateMetadataStatus, assembleFileFromChunks,
-  getChunks,
-} from "../services/indexedDB";
 
-function useFileTransfer(friendEmail, user, resumeTarget = null) {
+function useFileTransfer(friendEmail, user) {
   const { subscribeToDataChannel, sendDataViaWebRTC } = useSocket();
 
   const [selectedFile, setSelectedFile] = useState(null);
@@ -17,38 +11,7 @@ function useFileTransfer(friendEmail, user, resumeTarget = null) {
   const [transferComplete, setTransferComplete] = useState(false);
   const [receivedBlob, setReceivedBlob] = useState(null);
 
-  const [pendingDownload, setPendingDownload] = useState(null);
-  const [pendingMessage, setPendingMessage] = useState(null);
-  const [resumeRequest, setResumeRequest] = useState(null);
-  const [isResuming, setIsResuming] = useState(false);
-
-  const currentTransferId = useRef(null);
   const incomingChunks = useRef([]);
-  const resumeRequestSent = useRef(false);
-  const chunksLoaded = useRef(false);
-
-  useEffect(() => {
-    checkPendingDownloads();
-  }, []);
-
-  async function checkPendingDownloads() {
-    const completed = await getPendingDownloads();
-    const incomplete = await getIncompleteTransfers();
-    if (completed.length > 0) {
-      setPendingDownload(completed[0]);
-    } else if (incomplete.length > 0) {
-      setPendingMessage({
-        type: 'incomplete',
-        fileName: incomplete[0].fileName,
-        fileSize: incomplete[0].fileSize,
-        friendEmail: incomplete[0].friendEmail,
-        progress: `${Math.round((incomplete[0].receivedChunks / incomplete[0].totalChunks) * 100)}%`,
-        lastChunkId: incomplete[0].receivedChunks,
-        totalChunks: incomplete[0].totalChunks,
-        transferId: incomplete[0].transferId,
-      });
-    }
-  }
 
   const assembleBlob = (base64Chunks) => {
     const byteArrays = [];
@@ -67,78 +30,28 @@ function useFileTransfer(friendEmail, user, resumeTarget = null) {
     try {
       const msg = JSON.parse(msgStr);
 
-      if (msg.type === "resume-request") {
-        if (!resumeTarget) {
-          setResumeRequest({
-            fileName: msg.fileName,
-            fileSize: msg.fileSize,
-            lastChunkId: msg.lastChunkId,
-          });
-        }
-        return;
-      }
-
       if (msg.type === "metadata") {
-        let transferId;
-        if (msg.resume && currentTransferId.current) {
-          transferId = currentTransferId.current;
-        } else {
-          transferId = `${friendEmail}-${msg.fileName}-${Date.now()}`;
-          currentTransferId.current = transferId;
-          incomingChunks.current = [];
-        }
-
         setIncomingFile({
           name: msg.fileName,
           size: msg.fileSize,
           type: msg.fileType,
           totalChunks: msg.totalChunks,
         });
-
-        const existingCount = incomingChunks.current.length;
-        const startProgress = Math.round((existingCount / msg.totalChunks) * 100);
-        setTransferProgress(startProgress || 0);
+        incomingChunks.current = [];
+        setTransferProgress(0);
         setIsTransferring(true);
         setTransferComplete(false);
-
-        if (!msg.resume) {
-          saveMetadata(transferId, {
-            fileName: msg.fileName,
-            fileSize: msg.fileSize,
-            fileType: msg.fileType,
-            totalChunks: msg.totalChunks,
-            receivedChunks: 0,
-            status: 'downloading',
-            friendEmail,
-            createdAt: Date.now(),
-          });
-        }
       } else if (msg.type === "chunk" || msg.data) {
         incomingChunks.current.push(msg.data);
 
         const currentProgress = Math.round(
-          ((msg.chunkId) / msg.totalChunks) * 100
+          (msg.chunkId / msg.totalChunks) * 100
         );
         setTransferProgress(currentProgress);
-
-        if (currentTransferId.current) {
-          saveChunk(currentTransferId.current, msg.chunkId, msg.data, msg.totalChunks);
-          getMetadata(currentTransferId.current).then(meta => {
-            if (meta) {
-              saveMetadata(currentTransferId.current, {
-                ...meta,
-                receivedChunks: msg.chunkId,
-              });
-            }
-          });
-        }
 
         if (msg.isCompleted) {
           setIsTransferring(false);
           setTransferComplete(true);
-          if (currentTransferId.current) {
-            updateMetadataStatus(currentTransferId.current, 'completed');
-          }
           const blob = assembleBlob(incomingChunks.current);
           setReceivedBlob(blob);
         }
@@ -146,46 +59,23 @@ function useFileTransfer(friendEmail, user, resumeTarget = null) {
     } catch (err) {
       console.error("Error processing data channel message", err);
     }
-  }, [friendEmail, resumeTarget]);
+  }, []);
 
   useEffect(() => {
-    if (!subscribeToDataChannel) return;
-
-    subscribeToDataChannel(onMessage);
-
-    if (resumeTarget && !resumeRequestSent.current) {
-      resumeRequestSent.current = true;
-      currentTransferId.current = resumeTarget.transferId;
-      setIsResuming(true);
-      chunksLoaded.current = false;
-      getChunks(resumeTarget.transferId).then(chunks => {
-        incomingChunks.current = chunks
-          .sort((a, b) => a.chunkId - b.chunkId)
-          .map(c => c.data);
-        chunksLoaded.current = true;
-      });
-      sendDataViaWebRTC(JSON.stringify({
-        type: "resume-request",
-        fileName: resumeTarget.fileName,
-        fileSize: resumeTarget.fileSize,
-        lastChunkId: resumeTarget.lastChunkId,
-      }));
+    if (subscribeToDataChannel) {
+      subscribeToDataChannel(onMessage);
     }
-  }, [subscribeToDataChannel, onMessage, resumeTarget, sendDataViaWebRTC]);
+  }, [subscribeToDataChannel, onMessage]);
 
-  const sendSecuredFile = (opts = {}) => {
+  const sendSecuredFile = () => {
     if (!selectedFile) return;
 
-    const startFromChunk = opts.startFromChunk || 0;
-    const isResume = opts.resume || false;
-
     setIsTransferring(true);
-    setTransferProgress(Math.round((startFromChunk / Math.ceil(selectedFile.size / 16384)) * 100));
+    setTransferProgress(0);
     setTransferComplete(false);
 
     const CHUNK_SIZE = 16384;
     const totalChunks = Math.ceil(selectedFile.size / CHUNK_SIZE);
-    const startOffset = startFromChunk * CHUNK_SIZE;
 
     sendDataViaWebRTC(
       JSON.stringify({
@@ -194,13 +84,11 @@ function useFileTransfer(friendEmail, user, resumeTarget = null) {
         fileSize: selectedFile.size,
         fileType: selectedFile.type,
         totalChunks,
-        resume: isResume,
-        lastChunkId: isResume ? startFromChunk - 1 : 0,
       })
     );
 
-    let chunkId = startFromChunk;
-    let offset = startOffset;
+    let chunkId = 0;
+    let offset = 0;
 
     const reader = new FileReader();
 
@@ -244,24 +132,17 @@ function useFileTransfer(friendEmail, user, resumeTarget = null) {
     readNextChunk();
   };
 
-  const clearFile = async () => {
+  const clearFile = () => {
     setSelectedFile(null);
     setIncomingFile(null);
     setTransferProgress(0);
     setIsTransferring(false);
     setTransferComplete(false);
     setReceivedBlob(null);
-    setIsResuming(false);
     incomingChunks.current = [];
-    resumeRequestSent.current = false;
-    chunksLoaded.current = false;
-    if (currentTransferId.current) {
-      await clearTransfer(currentTransferId.current);
-      currentTransferId.current = null;
-    }
   };
 
-  const downloadFile = async () => {
+  const downloadFile = () => {
     if (receivedBlob && incomingFile) {
       const url = URL.createObjectURL(receivedBlob);
       const a = document.createElement("a");
@@ -271,38 +152,8 @@ function useFileTransfer(friendEmail, user, resumeTarget = null) {
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      if (currentTransferId.current) {
-        await clearTransfer(currentTransferId.current);
-        currentTransferId.current = null;
-      }
       clearFile();
     }
-  };
-
-  const downloadPendingFile = async () => {
-    if (pendingDownload) {
-      const { blob, metadata } = await assembleFileFromChunks(pendingDownload.transferId);
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = metadata.fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-      await clearTransfer(pendingDownload.transferId);
-      setPendingDownload(null);
-    }
-  };
-
-  const dismissPending = () => {
-    setPendingDownload(null);
-    setPendingMessage(null);
-    setResumeRequest(null);
-  };
-
-  const rejectResumeRequest = () => {
-    setResumeRequest(null);
   };
 
   return {
@@ -315,13 +166,6 @@ function useFileTransfer(friendEmail, user, resumeTarget = null) {
     sendSecuredFile,
     downloadFile,
     clearFile,
-    pendingDownload,
-    pendingMessage,
-    downloadPendingFile,
-    dismissPending,
-    resumeRequest,
-    rejectResumeRequest,
-    isResuming,
   };
 }
 

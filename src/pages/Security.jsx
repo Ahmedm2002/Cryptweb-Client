@@ -24,7 +24,7 @@ export const Security = () => {
             </h1>
             <p className="text-lg text-gray-600 mb-8 leading-relaxed font-medium">
               We believe privacy is a fundamental right. Cryptweb creates a
-              secure peer-to-peer data tunnel, ensuring your files never rest on
+              secure direct data tunnel, ensuring your files never rest on
               our servers.
             </p>
           </div>
