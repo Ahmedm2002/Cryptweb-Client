@@ -85,23 +85,25 @@ export const SocketProvider = ({ children }) => {
 
   function updateFriendsStatus(data) {
     setIsInitiator(true);
-    setFriendStatus(data);
-    setConnectionError(null);
-    if (!data) return;
+    if (!data) {
+      setFriendStatus(null);
+      return;
+    }
     pendingFriendInfo.current = {
       email: data.email || data.data?.email,
       name: data.data?.name || data.email || data.data?.email,
     };
-    console.log(`[WebRTC] Friend status update: email=${pendingFriendInfo.current.email}, name=${pendingFriendInfo.current.name}, isOnline=${data?.data?.isOnline || data?.isOnline}`);
     if (data?.data?.isOnline || data?.isOnline) {
+      setFriendStatus(data);
+      setConnectionError(null);
       const friendEmail = data.email || data.data?.email;
-      console.log(`[WebRTC] Friend is online, emitting connection request to ${friendEmail}`);
       emitConnectionRequest(user.email, friendEmail);
+    } else {
+      setFriendStatus(null);
     }
   }
 
   function respondToRequest(fromEmail, accepted) {
-    console.log(`[WebRTC] Responding to request from ${fromEmail}: accepted=${accepted}`);
     emitConnectionResponse(user.email, fromEmail, accepted);
     setIncomingRequest(null);
     if (accepted) {
@@ -110,7 +112,6 @@ export const SocketProvider = ({ children }) => {
   }
 
   function onPeerConnected() {
-    console.log(`[WebRTC] onPeerConnected callback fired`);
     setIsConnectedWithFriend(true);
     if (pendingFriendInfo.current) {
       setConnectedFriend({ ...pendingFriendInfo.current });
@@ -118,50 +119,49 @@ export const SocketProvider = ({ children }) => {
   }
 
   function onPeerError(msg) {
-    console.log(`[WebRTC] onPeerError callback fired: ${msg}`);
     setConnectionError(msg);
     setIsConnectedWithFriend(false);
     setConnectedFriend(null);
   }
 
-  async function onConnectionResponse(data) {
+  function onConnectionResponse(data) {
     setIsInitiator(true);
-    console.log(`[WebRTC] Connection response received: accepted=${data?.accepted}, from=${data?.from}`);
     if (data?.accepted) {
       setConnectionError(null);
       peerRef.current = null;
-      console.log(`[WebRTC] Creating RTCPeer as initiator for ${data.from}`);
       peerRef.current = new RTCPeer(
         socket, user.email, data.from,
         onPeerConnected,
         onPeerError,
       );
-      await peerRef.current.createOffer();
+      peerRef.current.createOffer();
     } else {
-      console.log(`[WebRTC] Connection request was rejected by ${data?.from}`);
+      setFriendStatus(null);
+      setIsInitiator(false);
+      setConnectionError(`Connection request was rejected by ${data?.from || "the recipient"}.`);
     }
   }
 
-  async function onOffer(data) {
-    console.log(`[WebRTC] Offer received from ${data.from}`);
+  function onOffer(data) {
+    if (peerRef.current) {
+      peerRef.current.close();
+    }
     peerRef.current = null;
-    console.log(`[WebRTC] Creating RTCPeer as responder for ${data.from}`);
     peerRef.current = new RTCPeer(
       socket, user.email, data.from,
       onPeerConnected,
       onPeerError,
     );
-    await peerRef.current.handleOffer(data.offer);
+    peerRef.current.handleOffer(data.offer);
   }
 
-  async function onAnswer(data) {
-    console.log(`[WebRTC] Answer received from ${data.from}`);
+  function onAnswer(data) {
     if (peerRef.current) {
       peerRef.current.handleAnswer(data.answer);
     }
   }
 
-  async function onIceCandidate(data) {
+  function onIceCandidate(data) {
     if (peerRef.current) {
       peerRef.current.handleIceCandidate(data.candidate);
     }
