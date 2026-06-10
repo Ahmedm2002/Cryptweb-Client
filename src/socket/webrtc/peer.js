@@ -55,7 +55,31 @@ class RTCPeer {
     this._rtcConnection = null;
     this._dataChannel = null;
 
+    console.log(`[WebRTC] Creating peer for ${remotePeerEmail}`);
     this._createConnection();
+  }
+
+  async _logConnectionType() {
+    try {
+      const stats = await this._rtcConnection.getStats();
+      stats.forEach((report) => {
+        if (report.type === "candidate-pair" && report.selected) {
+          const local = stats.get(report.localCandidateId);
+          if (local) {
+            const type = local.candidateType;
+            if (type === "relay") {
+              console.log(
+                `[WebRTC] Connection with ${this._remotePeerEmail} uses TURN relay server`,
+              );
+            } else {
+              console.log(
+                `[WebRTC] Connection with ${this._remotePeerEmail} is direct P2P (${type})`,
+              );
+            }
+          }
+        }
+      });
+    } catch (_) {}
   }
 
   _createConnection() {
@@ -71,8 +95,21 @@ class RTCPeer {
       }
     };
 
+    this._rtcConnection.oniceconnectionstatechange = () => {
+      const state = this._rtcConnection.iceConnectionState;
+      if (state === "connected") {
+        this._logConnectionType();
+      }
+      console.log(
+        `[WebRTC] ICE state: ${state} (with ${this._remotePeerEmail})`,
+      );
+    };
+
     this._rtcConnection.onconnectionstatechange = () => {
       const state = this._rtcConnection.connectionState;
+      console.log(
+        `[WebRTC] Connection state: ${state} (with ${this._remotePeerEmail})`,
+      );
       if (state === "connected") {
         if (this._onConnect) this._onConnect();
       } else if (state === "failed") {
@@ -81,6 +118,7 @@ class RTCPeer {
     };
 
     this._rtcConnection.ondatachannel = (event) => {
+      console.log(`[WebRTC] Incoming data channel: ${event.channel.label}`);
       this._dataChannel = event.channel;
       this._setupDataChannel();
     };
@@ -128,14 +166,26 @@ class RTCPeer {
   }
 
   _setupDataChannel() {
-    this._dataChannel.onopen = () => {};
+    this._dataChannel.onopen = () => {
+      console.log(
+        `[WebRTC] Data channel opened: ${this._dataChannel.label} (with ${this._remotePeerEmail})`,
+      );
+    };
     this._dataChannel.onmessage = (event) => {
       if (this._onDataChannelMessage) {
         this._onDataChannelMessage(event.data);
       }
     };
-    this._dataChannel.onerror = () => {};
-    this._dataChannel.onclose = () => {};
+    this._dataChannel.onerror = () => {
+      console.log(
+        `[WebRTC] Data channel error (with ${this._remotePeerEmail})`,
+      );
+    };
+    this._dataChannel.onclose = () => {
+      console.log(
+        `[WebRTC] Data channel closed (with ${this._remotePeerEmail})`,
+      );
+    };
   }
 
   sendData(data) {
@@ -189,6 +239,9 @@ class RTCPeer {
   }
 
   close() {
+    console.log(
+      `[WebRTC] Closing peer connection (with ${this._remotePeerEmail})`,
+    );
     if (this._dataChannel) {
       this._dataChannel.close();
     }

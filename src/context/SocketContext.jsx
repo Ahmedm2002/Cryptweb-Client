@@ -127,6 +127,7 @@ export const SocketProvider = ({ children }) => {
   function onConnectionResponse(data) {
     setIsInitiator(true);
     if (data?.accepted) {
+      console.log(`[WebRTC] Connection accepted by ${data.from}, creating peer`);
       setConnectionError(null);
       peerRef.current = null;
       peerRef.current = new RTCPeer(
@@ -136,6 +137,7 @@ export const SocketProvider = ({ children }) => {
       );
       peerRef.current.createOffer();
     } else {
+      console.log(`[WebRTC] Connection rejected by ${data?.from}`);
       setFriendStatus(null);
       setIsInitiator(false);
       setConnectionError(`Connection request was rejected by ${data?.from || "the recipient"}.`);
@@ -143,6 +145,7 @@ export const SocketProvider = ({ children }) => {
   }
 
   function onOffer(data) {
+    console.log(`[WebRTC] Offer received from ${data.from}`);
     if (peerRef.current) {
       peerRef.current.close();
     }
@@ -156,6 +159,7 @@ export const SocketProvider = ({ children }) => {
   }
 
   function onAnswer(data) {
+    console.log(`[WebRTC] Answer received from ${data.from}`);
     if (peerRef.current) {
       peerRef.current.handleAnswer(data.answer);
     }
@@ -181,6 +185,7 @@ export const SocketProvider = ({ children }) => {
   }
 
   function disconnectFromFriend() {
+    console.log(`[WebRTC] Disconnecting from friend`);
     if (peerRef.current) {
       peerRef.current.close();
       peerRef.current = null;
