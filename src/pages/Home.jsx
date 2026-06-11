@@ -3,7 +3,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import EmailInput from "../components/EmailInput";
 import { useSocket } from "../socket/useSocket";
-import FileTransfer from "../components/FileTransfer";
+// import FileTransfer from "../components/FileTransfer";
 import IncomingRequest from "../components/dashboard/ConnectionStatus/IncomingRequest";
 import { LogOut, AlertTriangle } from "lucide-react";
 
