@@ -19,7 +19,7 @@ class Api {
         ) {
           originalRequest._retry = true;
           try {
-            await this._axios.post("/user-session/get-access-token");
+            await this._axios.post("/session/renew");
             return this._axios(originalRequest);
           } catch (refreshError) {
             return Promise.reject(refreshError);

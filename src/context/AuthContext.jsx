@@ -9,7 +9,7 @@ export const AuthProvider = ({ children }) => {
 
   async function checkSession() {
     try {
-      const res = await api.get("/user-session/1");
+      const res = await api.get("/session/1");
       if (res && res.success) {
         setUser(res.data?.user || res.data);
       } else {
@@ -56,7 +56,7 @@ export const AuthProvider = ({ children }) => {
   }
 
   async function logout() {
-    const res = await api.post("/user-session/logout");
+    const res = await api.post("/session/logout");
     if (res && res.success && typeof res !== "string") {
       setUser(null);
     }

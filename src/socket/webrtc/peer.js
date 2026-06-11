@@ -37,6 +37,14 @@ const ICE_SERVERS = {
 class RTCPeer {
   _maxRetryCount = 5;
 
+  /**
+   *
+   * @param {Socket} socket
+   * @param {string} localEmail
+   * @param {string} remotePeerEmail
+   * @param {Function} onConnect
+   * @param {Function} onConnectionFailure
+   */
   constructor(
     socket,
     localEmail,
@@ -54,32 +62,7 @@ class RTCPeer {
     this._isInitiator = false;
     this._rtcConnection = null;
     this._dataChannel = null;
-
-    console.log(`[WebRTC] Creating peer for ${remotePeerEmail}`);
     this._createConnection();
-  }
-
-  async _logConnectionType() {
-    try {
-      const stats = await this._rtcConnection.getStats();
-      stats.forEach((report) => {
-        if (report.type === "candidate-pair" && report.selected) {
-          const local = stats.get(report.localCandidateId);
-          if (local) {
-            const type = local.candidateType;
-            if (type === "relay") {
-              console.log(
-                `[WebRTC] Connection with ${this._remotePeerEmail} uses TURN relay server`,
-              );
-            } else {
-              console.log(
-                `[WebRTC] Connection with ${this._remotePeerEmail} is direct P2P (${type})`,
-              );
-            }
-          }
-        }
-      });
-    } catch (_) {}
   }
 
   _createConnection() {
@@ -97,11 +80,8 @@ class RTCPeer {
 
     this._rtcConnection.oniceconnectionstatechange = () => {
       const state = this._rtcConnection.iceConnectionState;
-      if (state === "connected") {
-        this._logConnectionType();
-      }
       console.log(
-        `[WebRTC] ICE state: ${state} (with ${this._remotePeerEmail})`,
+        `Connection ICE state: ${state} (with ${this._remotePeerEmail})`,
       );
     };
 

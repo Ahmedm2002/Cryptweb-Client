@@ -9,7 +9,7 @@ export const SessionList = () => {
 
   async function fetchSessions() {
     try {
-      const response = await api.get("/user-session/all");
+      const response = await api.get("/session/all");
       setSessions(response.data);
     } catch (error) {
       setError(error.message);

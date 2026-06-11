@@ -23,7 +23,7 @@ function EmailInput({ initialEmail = "" }) {
     try {
       updateFriendsStatus(null);
       setLoading(true);
-      const res = await api.post("/user-session/get-friend-status", { email });
+      const res = await api.post("/session/get-friend-status", { email });
       updateFriendsStatus({ ...res, email });
       setStatus(res);
     } catch (error) {
