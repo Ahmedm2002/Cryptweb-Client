@@ -1,6 +1,4 @@
 const StatusBar = ({ isUserOnline, friendStatus, friendEmail }) => {
-  console.log("Friend Status in Status bar: ", friendStatus);
-  console.log("Friend eamil in Status bar: ", friendEmail);
   return (
     <div
       id="status-bar"

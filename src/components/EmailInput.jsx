@@ -27,7 +27,6 @@ function EmailInput({ initialEmail = "" }) {
       updateFriendsStatus({ ...res, email });
       setStatus(res);
     } catch (error) {
-      console.log("Error occured: ", error);
       setStatus({
         success: false,
         message: error?.response?.data?.message || "Something went wrong",
@@ -48,6 +47,7 @@ function EmailInput({ initialEmail = "" }) {
       >
         <input
           type="email"
+          id="friends-email"
           placeholder="Friend's email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}

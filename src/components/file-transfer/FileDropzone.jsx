@@ -39,8 +39,8 @@ export function FileDropzone({ onFileSelect, disabled }) {
         disabled
           ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
           : isDragActive
-          ? "border-blue-500 bg-blue-50"
-          : "border-gray-300 hover:border-gray-400 bg-white"
+            ? "border-blue-500 bg-blue-50"
+            : "border-gray-300 hover:border-gray-400 bg-white"
       }`}
       onDragEnter={handleDrag}
       onDragLeave={handleDrag}
@@ -55,9 +55,13 @@ export function FileDropzone({ onFileSelect, disabled }) {
         onChange={handleChange}
         disabled={disabled}
       />
-      <UploadCloud className={`w-10 h-10 mb-3 ${disabled ? "text-gray-400" : "text-gray-500"}`} />
+      <UploadCloud
+        className={`w-10 h-10 mb-3 ${disabled ? "text-gray-400" : "text-gray-500"}`}
+      />
       <p className="text-sm font-medium text-gray-700">
-        {disabled ? "Waiting for peer connection..." : "Click or drag file to this area"}
+        {disabled
+          ? "Waiting for peer connection..."
+          : "Click or drag file to this area"}
       </p>
       <p className="text-xs text-gray-500 mt-1">Single file upload</p>
     </div>

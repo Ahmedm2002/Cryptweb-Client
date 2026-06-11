@@ -1,8 +1,6 @@
 import { SOCKET_EVENTS } from "./socket.events.js";
 import { socket } from "../socket/socket.js";
 
-// console.log("Socket: ", socket);
-
 function emitRegisterUser(user) {
   if (!user || !socket) return;
   socket.emit(SOCKET_EVENTS.USER_REGISTER, {
