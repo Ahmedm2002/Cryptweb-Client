@@ -1,4 +1,9 @@
 import { ICE_SERVERS } from "./iceServers";
+import {
+  emitIceCandidate,
+  emitWebRTCAnswer,
+  emitWebRTCOffer,
+} from "../socket/socket.handlers";
 /**
  * WebRTC peer connection handler for direct P2P communication using DataChannel.
  */
@@ -70,12 +75,13 @@ class RTCPeer {
    */
   async handleConnectionFailure() {
     this._retryCount++;
+    console.log("Retrying : ", this._retryCount);
 
     if (!this._isInitiator || this._retryCount >= this._maxRetryCount) {
       this._onConnectionFailure?.(this.unableToConnect());
+      console.log("Max retry calls reached");
       return;
     }
-
     this.retryConnection();
   }
 
@@ -94,14 +100,14 @@ class RTCPeer {
     }
 
     try {
-      this.createConnection();
+      this.init();
 
       this._dataChannel = this._rtcConnection.createDataChannel(
         "channel:file-transfer",
         { ordered: true },
       );
 
-      this._setupDataChannel();
+      this.setupDataChannel();
 
       const offer = await this._rtcConnection.createOffer();
       await this._rtcConnection.setLocalDescription(offer);
