@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
-import { useAuth } from "../hooks/useAuth";
+import { useAuth } from "../hooks/useAuth.js";
 import { useNavigate } from "react-router-dom";
 import EmailInput from "../components/EmailInput";
 import { useSocket } from "../socket/useSocket";
-// import FileTransfer from "../components/FileTransfer";
+import FileTransfer from "../components/file-transfer/FileTransfer";
 import IncomingRequest from "../components/dashboard/ConnectionStatus/IncomingRequest";
 import { LogOut, AlertTriangle } from "lucide-react";
 

@@ -1,6 +1,12 @@
-import React, { createContext, useContext, useEffect, useState, useRef } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useRef,
+} from "react";
 import { useAuth } from "../hooks/useAuth";
-import { RTCPeer } from "../socket/webrtc/peer.js";
+import { RTCPeer } from "../webrtc/peer.js";
 import { SOCKET_EVENTS } from "../socket/socket.events.js";
 import { socket } from "../socket/socket.js";
 import {
@@ -13,7 +19,9 @@ export const SocketContext = createContext(null);
 
 export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
-  const [isConnectedWithServer, setIsConnectedWithServer] = useState(socket.connected);
+  const [isConnectedWithServer, setIsConnectedWithServer] = useState(
+    socket.connected,
+  );
   const [friendStatus, setFriendStatus] = useState(null);
   const [incomingRequest, setIncomingRequest] = useState(null);
   const [isInitiator, setIsInitiator] = useState(false);
@@ -127,34 +135,40 @@ export const SocketProvider = ({ children }) => {
   function onConnectionResponse(data) {
     setIsInitiator(true);
     if (data?.accepted) {
-      console.log(`[WebRTC] Connection accepted by ${data.from}, creating peer`);
       setConnectionError(null);
       peerRef.current = null;
       peerRef.current = new RTCPeer(
-        socket, user.email, data.from,
+        socket,
+        user.email,
+        data.from,
         onPeerConnected,
         onPeerError,
       );
+      peerRef.current.init();
       peerRef.current.createOffer();
     } else {
       console.log(`[WebRTC] Connection rejected by ${data?.from}`);
       setFriendStatus(null);
       setIsInitiator(false);
-      setConnectionError(`Connection request was rejected by ${data?.from || "the recipient"}.`);
+      setConnectionError(
+        `Connection request was rejected by ${data?.from || "the recipient"}.`,
+      );
     }
   }
 
   function onOffer(data) {
-    console.log(`[WebRTC] Offer received from ${data.from}`);
     if (peerRef.current) {
       peerRef.current.close();
     }
     peerRef.current = null;
     peerRef.current = new RTCPeer(
-      socket, user.email, data.from,
+      socket,
+      user.email,
+      data.from,
       onPeerConnected,
       onPeerError,
     );
+    peerRef.current.init();
     peerRef.current.handleOffer(data.offer);
   }
 

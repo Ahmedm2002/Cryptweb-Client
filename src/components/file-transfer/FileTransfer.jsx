@@ -1,8 +1,8 @@
-import { useAuth } from "../hooks/useAuth.js";
-import { useFileTransfer } from "../hooks/useFileTransfer.js";
-import { FileTransferIncoming } from "./file-transfer/FileTransferIncoming";
-import { FileTransferProgress } from "./file-transfer/FileTransferProgress";
-import { FileTransferDropzone } from "./file-transfer/FileTransferDropzone";
+import { useAuth } from "../../hooks/useAuth.js";
+import { useFileTransfer } from "../../hooks/useFileTransfer.js";
+import { FileTransferIncoming } from "../file-transfer/FileTransferIncoming";
+import { FileTransferProgress } from "../file-transfer/FileTransferProgress";
+import { FileTransferDropzone } from "../file-transfer/FileTransferDropzone";
 import { ArrowUp } from "lucide-react";
 
 const FileTransfer = ({ friendEmail, status }) => {
@@ -21,7 +21,6 @@ const FileTransfer = ({ friendEmail, status }) => {
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-
       <FileTransferIncoming
         incomingFile={incomingFile}
         transferComplete={transferComplete}

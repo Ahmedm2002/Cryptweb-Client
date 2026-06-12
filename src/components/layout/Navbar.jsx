@@ -115,7 +115,6 @@ const Navbar = () => {
           </div>
         </div>
 
-        {/* Mobile Dropdown Wrapper with Smooth Transitions */}
         <div
           ref={menuRef}
           id="mobile-menu"

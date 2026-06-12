@@ -1,49 +1,16 @@
-import {
-  emitWebRTCOffer,
-  emitWebRTCAnswer,
-  emitIceCandidate,
-} from "../socket.handlers.js";
-
-const ICE_SERVERS = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:global.stun.twilio.com:3478" },
-    {
-      urls: "stun:stun.relay.metered.ca:80",
-    },
-    {
-      urls: "turn:global.relay.metered.ca:80",
-      username: "c2d8d546607a6f858bbc5aad",
-      credential: "j3+fryelPOgu3rUx",
-    },
-    {
-      urls: "turn:global.relay.metered.ca:80?transport=tcp",
-      username: "c2d8d546607a6f858bbc5aad",
-      credential: "j3+fryelPOgu3rUx",
-    },
-    {
-      urls: "turn:global.relay.metered.ca:443",
-      username: "c2d8d546607a6f858bbc5aad",
-      credential: "j3+fryelPOgu3rUx",
-    },
-    {
-      urls: "turns:global.relay.metered.ca:443?transport=tcp",
-      username: "c2d8d546607a6f858bbc5aad",
-      credential: "j3+fryelPOgu3rUx",
-    },
-  ],
-};
-
+/**
+ * WebRTC peer connection handler for direct P2P communication using DataChannel.
+ */
 class RTCPeer {
   _maxRetryCount = 5;
 
   /**
-   *
-   * @param {Socket} socket
-   * @param {string} localEmail
-   * @param {string} remotePeerEmail
-   * @param {Function} onConnect
-   * @param {Function} onConnectionFailure
+   * Creates a WebRTC peer manager instance.
+   * @param {Object} socket - Socket instance for signaling exchange.
+   * @param {string} localEmail - Identifier for local peer.
+   * @param {string} remotePeerEmail - Identifier for remote peer.
+   * @param {Function} onConnect - Callback fired when connection is established.
+   * @param {Function} onConnectionFailure - Callback fired when connection fails permanently.
    */
   constructor(
     socket,
@@ -62,10 +29,12 @@ class RTCPeer {
     this._isInitiator = false;
     this._rtcConnection = null;
     this._dataChannel = null;
-    this._createConnection();
   }
 
-  _createConnection() {
+  /**
+   * Initializes RTCPeerConnection and sets ICE + event handlers.
+   */
+  init() {
     this._rtcConnection = new RTCPeerConnection(ICE_SERVERS);
 
     this._rtcConnection.onicecandidate = (event) => {
@@ -78,96 +47,95 @@ class RTCPeer {
       }
     };
 
-    this._rtcConnection.oniceconnectionstatechange = () => {
-      const state = this._rtcConnection.iceConnectionState;
-      console.log(
-        `Connection ICE state: ${state} (with ${this._remotePeerEmail})`,
-      );
-    };
-
     this._rtcConnection.onconnectionstatechange = () => {
       const state = this._rtcConnection.connectionState;
-      console.log(
-        `[WebRTC] Connection state: ${state} (with ${this._remotePeerEmail})`,
-      );
+      console.log(`Connection state: ${state} (with ${this._remotePeerEmail})`);
+
       if (state === "connected") {
-        if (this._onConnect) this._onConnect();
+        this._onConnect?.();
       } else if (state === "failed") {
-        this._handleConnectionFailure();
+        this.handleConnectionFailure();
       }
     };
 
     this._rtcConnection.ondatachannel = (event) => {
-      console.log(`[WebRTC] Incoming data channel: ${event.channel.label}`);
       this._dataChannel = event.channel;
-      this._setupDataChannel();
+      this.setupDataChannel();
     };
   }
 
-  _handleConnectionFailure() {
+  /**
+   * Handles connection failure and triggers retry or final failure callback.
+   */
+  async handleConnectionFailure() {
     this._retryCount++;
+
     if (!this._isInitiator || this._retryCount >= this._maxRetryCount) {
-      if (this._onConnectionFailure)
-        this._onConnectionFailure(
-          `Unable to connect directly to ${this._remotePeerEmail}.`,
-        );
+      this._onConnectionFailure?.(this.unableToConnect());
       return;
     }
-    this._retryConnection();
+
+    this.retryConnection();
   }
 
-  async _retryConnection() {
+  /**
+   * Recreates WebRTC connection and retries offer negotiation.
+   */
+  async retryConnection() {
     if (this._dataChannel) {
       this._dataChannel.close();
       this._dataChannel = null;
     }
+
     if (this._rtcConnection) {
       this._rtcConnection.close();
       this._rtcConnection = null;
     }
 
     try {
-      this._createConnection();
+      this.createConnection();
+
       this._dataChannel = this._rtcConnection.createDataChannel(
         "channel:file-transfer",
         { ordered: true },
       );
+
       this._setupDataChannel();
 
       const offer = await this._rtcConnection.createOffer();
       await this._rtcConnection.setLocalDescription(offer);
+
       emitWebRTCOffer(this._localEmail, this._remotePeerEmail, offer);
-    } catch {
-      if (this._onConnectionFailure)
-        this._onConnectionFailure(
-          `Unable to connect directly to ${this._remotePeerEmail}.`,
-        );
+    } catch (err) {
+      console.log("Err :", err);
+      this._onConnectionFailure?.(this.unableToConnect());
     }
   }
 
-  _setupDataChannel() {
-    this._dataChannel.onopen = () => {
-      console.log(
-        `[WebRTC] Data channel opened: ${this._dataChannel.label} (with ${this._remotePeerEmail})`,
-      );
-    };
+  /**
+   * Configures data channel event listeners.
+   */
+  setupDataChannel() {
+    this._dataChannel.onopen = () => {};
+
     this._dataChannel.onmessage = (event) => {
-      if (this._onDataChannelMessage) {
-        this._onDataChannelMessage(event.data);
-      }
+      this._onDataChannelMessage?.(event.data);
     };
-    this._dataChannel.onerror = () => {
-      console.log(
-        `[WebRTC] Data channel error (with ${this._remotePeerEmail})`,
-      );
+
+    this._dataChannel.onerror = (error) => {
+      console.log(`Data channel error: ${error})`);
     };
+
     this._dataChannel.onclose = () => {
-      console.log(
-        `[WebRTC] Data channel closed (with ${this._remotePeerEmail})`,
-      );
+      console.log(`Data channel closed ${this._remotePeerEmail}`);
     };
   }
 
+  /**
+   * Sends data through WebRTC data channel.
+   * @param {any} data - Serializable payload to send.
+   * @returns {boolean} true if sent, false if channel is not open.
+   */
   sendData(data) {
     if (this._dataChannel && this._dataChannel.readyState === "open") {
       this._dataChannel.send(data);
@@ -176,19 +144,29 @@ class RTCPeer {
     return false;
   }
 
+  /**
+   * Creates WebRTC offer (initiator flow).
+   */
   async createOffer() {
     this._isInitiator = true;
+
     this._dataChannel = this._rtcConnection.createDataChannel(
       "channel:file-transfer",
       { ordered: true },
     );
-    this._setupDataChannel();
+
+    this.setupDataChannel();
 
     const offer = await this._rtcConnection.createOffer();
     await this._rtcConnection.setLocalDescription(offer);
+
     emitWebRTCOffer(this._localEmail, this._remotePeerEmail, offer);
   }
 
+  /**
+   * Handles incoming WebRTC offer from remote peer.
+   * @param {RTCSessionDescriptionInit} offer - Remote SDP offer.
+   */
   async handleOffer(offer) {
     if (this._rtcConnection.signalingState !== "stable") return;
 
@@ -198,15 +176,24 @@ class RTCPeer {
 
     const answer = await this._rtcConnection.createAnswer();
     await this._rtcConnection.setLocalDescription(answer);
+
     emitWebRTCAnswer(this._localEmail, this._remotePeerEmail, answer);
   }
 
+  /**
+   * Handles SDP answer from remote peer.
+   * @param {RTCSessionDescriptionInit} answer - Remote SDP answer.
+   */
   async handleAnswer(answer) {
     await this._rtcConnection.setRemoteDescription(
       new RTCSessionDescription(answer),
     );
   }
 
+  /**
+   * Adds ICE candidate received from remote peer.
+   * @param {RTCIceCandidateInit} candidate - ICE candidate object.
+   */
   handleIceCandidate(candidate) {
     if (
       this._rtcConnection.remoteDescription &&
@@ -218,17 +205,21 @@ class RTCPeer {
     }
   }
 
+  /**
+   * Closes peer connection and data channel.
+   */
   close() {
-    console.log(
-      `[WebRTC] Closing peer connection (with ${this._remotePeerEmail})`,
-    );
-    if (this._dataChannel) {
-      this._dataChannel.close();
-    }
-    if (this._rtcConnection) {
-      this._rtcConnection.close();
-    }
+    this._dataChannel?.close();
+    this._rtcConnection?.close();
+  }
+
+  /**
+   * Generates user-friendly connection failure message.
+   * @returns {string} failure message
+   */
+  unableToConnect() {
+    return this._remotePeerEmail
+      ? `Unable to connect directly to ${this._remotePeerEmail}.`
+      : "Unalbe to connect directly";
   }
 }
-
-export { RTCPeer };

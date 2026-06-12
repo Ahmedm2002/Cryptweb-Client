@@ -45,7 +45,7 @@ function useFileTransfer(friendEmail, user) {
         incomingChunks.current.push(msg.data);
 
         const currentProgress = Math.round(
-          (msg.chunkId / msg.totalChunks) * 100
+          (msg.chunkId / msg.totalChunks) * 100,
         );
         setTransferProgress(currentProgress);
 
@@ -84,7 +84,7 @@ function useFileTransfer(friendEmail, user) {
         fileSize: selectedFile.size,
         fileType: selectedFile.type,
         totalChunks,
-      })
+      }),
     );
 
     let chunkId = 0;
@@ -109,7 +109,7 @@ function useFileTransfer(friendEmail, user) {
           totalChunks,
           data: base64Data,
           isCompleted,
-        })
+        }),
       );
 
       chunkId++;
