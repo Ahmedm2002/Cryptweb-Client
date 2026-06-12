@@ -1,3 +1,4 @@
+import { ICE_SERVERS } from "./iceServers";
 /**
  * WebRTC peer connection handler for direct P2P communication using DataChannel.
  */
