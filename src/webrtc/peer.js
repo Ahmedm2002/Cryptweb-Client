@@ -224,3 +224,5 @@ class RTCPeer {
       : "Unalbe to connect directly";
   }
 }
+
+export { RTCPeer };
