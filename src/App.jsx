@@ -13,8 +13,8 @@ import { Product } from "./pages/Product.jsx";
 import { Login } from "./pages/Login.jsx";
 import { Signup } from "./pages/Signup.jsx";
 import { SocketProvider } from "./context/SocketContext.jsx";
-// import { VerifyEmail } from "./pages/VerifyEmail.jsx";
 import { Security } from "./pages/Security.jsx";
+import { NotFound } from "./pages/NotFound.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 
 const AuthRoute = ({ children }) => {
@@ -98,16 +98,8 @@ const AppContent = () => {
               </AuthRoute>
             }
           />
-          {/* <Route
-            path="/verify-email"
-            element={
-              <AuthRoute>
-                <VerifyEmail />
-              </AuthRoute>
-            }
-          /> */}
           <Route path="/security" element={<Security />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </div>
     </Router>

@@ -12,6 +12,7 @@ import { Button } from "../components/commons/Button.jsx";
 export const Security = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col text-gray-900 font-sans">
+      <main className="flex-1">
       <section
         id="security-hero"
         className="relative overflow-hidden pt-20 pb-24 sm:pt-24 sm:pb-32 border-b border-gray-100 bg-white"
@@ -172,6 +173,7 @@ export const Security = () => {
           </div>
         </div>
       </section>
+      </main>
 
       <footer id="footer" className="bg-white py-12 border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">

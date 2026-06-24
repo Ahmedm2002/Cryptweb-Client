@@ -13,6 +13,7 @@ import {
 export const Product = () => {
   return (
     <div className="min-h-screen bg-white flex flex-col text-gray-900">
+      <main className="flex-1">
       <section
         id="hero"
         className="relative overflow-hidden pt-24 pb-32 sm:pt-32 sm:pb-40 border-b border-gray-100"
@@ -259,6 +260,7 @@ export const Product = () => {
           </div>
         </div>
       </section>
+      </main>
 
       <footer id="footer" className="bg-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
