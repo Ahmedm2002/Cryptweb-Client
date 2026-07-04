@@ -124,7 +124,6 @@ export const Signup = () => {
               variant="primary"
               className="w-full flex justify-center py-3 text-[15px]"
               disabled={loading}
-              onClick={(e) => handleSubmit(e)}
             >
               {loading ? "Creating account..." : "Sign up"}
             </Button>

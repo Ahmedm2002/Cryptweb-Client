@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useAuth } from "../hooks/useAuth.js";
 import { useNavigate } from "react-router-dom";
 import EmailInput from "../components/EmailInput";

@@ -1,5 +1,3 @@
-import React from "react";
-
 const IncomingRequest = ({ request, onRespond }) => {
   if (!request) return null;
 

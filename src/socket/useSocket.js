@@ -1,6 +1,5 @@
 import { useContext } from "react";
 import { SocketContext } from "../context/SocketContext.jsx";
-import { socket } from "./socket.js";
 
 function useSocket() {
   const context = useContext(SocketContext);
@@ -10,4 +9,4 @@ function useSocket() {
   return context;
 }
 
-export { socket, useSocket };
+export { useSocket };
