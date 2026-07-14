@@ -7,13 +7,15 @@ export const Button = ({
   ...props
 }) => {
   const baseStyles =
-    "px-4 py-2 rounded-lg font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
+    "px-4 py-2 rounded-xl font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
 
   const variants = {
     primary:
-      "bg-gray-900 text-white hover:bg-gray-800 focus:ring-gray-500",
+      "bg-[#1c1c28] text-white hover:bg-[#2a2a3a] focus:ring-[#6c5ce7] shadow-sm hover:shadow-md",
     secondary:
-      "bg-white text-gray-700 border border-gray-200 hover:bg-gray-50 focus:ring-gray-300",
+      "bg-white text-[#1c1c28] border border-[#e8e3dd] hover:bg-[#faf8f5] hover:border-[#d4cdc4] focus:ring-[#c78b4a]",
+    ghost:
+      "text-[#6c5ce7] hover:bg-[#f5f0fb] focus:ring-[#6c5ce7]",
   };
 
   return (

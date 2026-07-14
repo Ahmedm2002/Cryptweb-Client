@@ -5,11 +5,13 @@ import { Button } from "../commons/Button.jsx";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
 
   useEffect(() => {
     const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
       if (open) setOpen(false);
     };
 
@@ -25,8 +27,8 @@ const Navbar = () => {
       }
     };
 
+    window.addEventListener("scroll", handleScroll, { passive: true });
     if (open) {
-      window.addEventListener("scroll", handleScroll, { passive: true });
       document.addEventListener("mousedown", handleOutsideInteraction);
       document.addEventListener("touchstart", handleOutsideInteraction, {
         passive: true,

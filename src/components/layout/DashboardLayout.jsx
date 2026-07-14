@@ -15,19 +15,19 @@ function DashboardLayout({ children }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col text-gray-900 font-sans antialiased">
+    <div className="min-h-screen bg-[#FAFBFD] flex flex-col text-gray-900 font-sans antialiased relative">
       <Header onLogoutConfirm={() => setLogoutConfirm(true)} />
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-3xl mx-auto px-4 py-6">
-          {children}
-        </div>
+      <main className="flex-1 overflow-y-auto relative z-10">
+        <div className="max-w-3xl mx-auto px-4 py-6">{children}</div>
       </main>
 
       {logoutConfirm && (
         <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">Logout</h3>
-            <p className="text-gray-600 text-sm mb-6">Are you sure you want to logout?</p>
+            <p className="text-gray-600 text-sm mb-6">
+              Are you sure you want to logout?
+            </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setLogoutConfirm(false)}

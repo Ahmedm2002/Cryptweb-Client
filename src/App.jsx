@@ -14,6 +14,9 @@ import { Login } from "./pages/Login.jsx";
 import { Signup } from "./pages/Signup.jsx";
 import { SocketProvider } from "./context/SocketContext.jsx";
 import { Security } from "./pages/Security.jsx";
+import { Features } from "./pages/Features.jsx";
+import { About } from "./pages/About.jsx";
+import { Contact } from "./pages/Contact.jsx";
 import { NotFound } from "./pages/NotFound.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 
@@ -47,7 +50,7 @@ const AppContent = () => {
 
   return (
     <Router>
-      <div className="font-sans antialiased text-gray-900 bg-gray-50 min-h-screen">
+      <div className="font-sans antialiased text-gray-900 bg-[#FAFBFD] min-h-screen">
         <ConditionalNavbar menuItems={menuItems} />
         <Routes>
           <Route
@@ -99,6 +102,9 @@ const AppContent = () => {
             }
           />
           <Route path="/security" element={<Security />} />
+          <Route path="/features" element={<Features />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </div>

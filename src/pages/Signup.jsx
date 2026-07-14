@@ -35,8 +35,9 @@ export const Signup = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center sm:py-6 sm:px-6 lg:px-8 bg-gray-50 flex-col">
-      <div className="sm:max-w-md w-full space-y-8 bg-white p-10 sm:rounded-3xl shadow-sm border border-gray-100">
+    <div className="relative min-h-[calc(100vh-5rem)] flex items-center justify-center sm:py-6 sm:px-6 lg:px-8 bg-[#FAFBFD] flex-col overflow-hidden">
+      <div className="absolute inset-0 z-0 bg-octagon-grid pointer-events-none" />
+      <div className="sm:max-w-md w-full space-y-8 bg-white p-10 sm:rounded-3xl shadow-sm border border-gray-100 relative z-10">
         <div className="text-center">
           <h2 className="text-3xl font-bold text-gray-900 tracking-tight">
             Register
@@ -64,7 +65,7 @@ export const Signup = () => {
                 id="name"
                 type="name"
                 required
-                className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all sm:text-sm"
+                className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-[#6c5ce7] focus:border-transparent transition-all sm:text-sm"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -80,7 +81,7 @@ export const Signup = () => {
                 id="email"
                 type="email"
                 required
-                className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all sm:text-sm"
+                className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-[#6c5ce7] focus:border-transparent transition-all sm:text-sm"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -96,7 +97,7 @@ export const Signup = () => {
                 id="password"
                 type="password"
                 required
-                className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all sm:text-sm"
+                className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-[#6c5ce7] focus:border-transparent transition-all sm:text-sm"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -112,7 +113,7 @@ export const Signup = () => {
                 id="confirmPassword"
                 type="password"
                 required
-                className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all sm:text-sm"
+                className="block w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-[#6c5ce7] focus:border-transparent transition-all sm:text-sm"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
@@ -158,7 +159,7 @@ export const Signup = () => {
           <span className="text-gray-500">Already have an account? </span>
           <Link
             to="/login"
-            className="font-semibold text-indigo-600 hover:text-indigo-500 transition-colors"
+            className="font-semibold text-[#6c5ce7] hover:text-[#5b4dae] transition-colors"
           >
             Log in
           </Link>
