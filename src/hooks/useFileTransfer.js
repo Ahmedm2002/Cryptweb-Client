@@ -10,8 +10,10 @@ function useFileTransfer(friendEmail, user) {
   const [isTransferring, setIsTransferring] = useState(false);
   const [transferComplete, setTransferComplete] = useState(false);
   const [receivedBlob, setReceivedBlob] = useState(null);
+  const [transferSpeed, setTransferSpeed] = useState(0);
 
   const incomingChunks = useRef([]);
+  const startTime = useRef(null);
 
   const assembleBlob = (base64Chunks) => {
     const byteArrays = [];
@@ -37,10 +39,14 @@ function useFileTransfer(friendEmail, user) {
           type: msg.fileType,
           totalChunks: msg.totalChunks,
         });
-        incomingChunks.current = [];
+    incomingChunks.current = [];
+    startTime.current = null;
+    setTransferSpeed(0);
         setTransferProgress(0);
         setIsTransferring(true);
         setTransferComplete(false);
+        startTime.current = Date.now();
+        setTransferSpeed(0);
       } else if (msg.type === "chunk" || msg.data) {
         incomingChunks.current.push(msg.data);
 
@@ -48,6 +54,14 @@ function useFileTransfer(friendEmail, user) {
           (msg.chunkId / msg.totalChunks) * 100,
         );
         setTransferProgress(currentProgress);
+
+        if (startTime.current && incomingFile?.size) {
+          const elapsed = (Date.now() - startTime.current) / 1000;
+          if (elapsed > 0) {
+            const bytesSoFar = (currentProgress / 100) * incomingFile.size;
+            setTransferSpeed(bytesSoFar / elapsed);
+          }
+        }
 
         if (msg.isCompleted) {
           setIsTransferring(false);
@@ -73,6 +87,8 @@ function useFileTransfer(friendEmail, user) {
     setIsTransferring(true);
     setTransferProgress(0);
     setTransferComplete(false);
+    startTime.current = Date.now();
+    setTransferSpeed(0);
 
     const CHUNK_SIZE = 16384;
     const totalChunks = Math.ceil(selectedFile.size / CHUNK_SIZE);
@@ -114,7 +130,15 @@ function useFileTransfer(friendEmail, user) {
 
       chunkId++;
       offset += CHUNK_SIZE;
-      setTransferProgress(Math.round((chunkId / totalChunks) * 100));
+      const progress = Math.round((chunkId / totalChunks) * 100);
+      setTransferProgress(progress);
+
+      if (startTime.current) {
+        const elapsed = (Date.now() - startTime.current) / 1000;
+        if (elapsed > 0) {
+          setTransferSpeed(offset / elapsed);
+        }
+      }
 
       if (offset < selectedFile.size) {
         setTimeout(readNextChunk, 5);
@@ -163,6 +187,7 @@ function useFileTransfer(friendEmail, user) {
     isTransferring,
     incomingFile,
     transferComplete,
+    transferSpeed,
     sendSecuredFile,
     downloadFile,
     clearFile,

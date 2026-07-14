@@ -1,35 +1,51 @@
 export const FileTransferProgress = ({
   transferProgress,
+  transferSpeed,
   incomingFile,
-  selectedFile
+  selectedFile,
 }) => {
+  const totalBytes = selectedFile?.size || incomingFile?.size || 0;
+  const transferredBytes = Math.round((transferProgress / 100) * totalBytes);
+
+  const formatBytes = (bytes) => {
+    if (bytes === 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return (bytes / Math.pow(1024, i)).toFixed(i > 0 ? 1 : 0) + " " + units[i];
+  };
+
+  const formatSpeed = (bytesPerSec) => {
+    if (bytesPerSec === 0) return "";
+    return formatBytes(bytesPerSec) + "/s";
+  };
+
   return (
-    <div className="flex flex-col items-center text-center w-full max-w-xs">
-      <div className="relative w-24 h-24 mb-6">
-        <svg className="w-full h-full" viewBox="0 0 100 100">
-          <circle
-            cx="50" cy="50" r="45"
-            fill="none" stroke="#E5E7EB" strokeWidth="6"
-          />
-          <circle
-            cx="50" cy="50" r="45"
-            fill="none" stroke="#374151" strokeWidth="6"
-            strokeDasharray={`${transferProgress * 2.827} 282.7`}
-            strokeLinecap="round"
-            className="transition-all duration-300 transform -rotate-90 origin-center"
-          />
-        </svg>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-lg font-bold text-gray-800">
-            {transferProgress}%
-          </span>
-        </div>
+    <div className="w-full max-w-md mx-auto">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-medium text-gray-700">
+          {incomingFile ? "Receiving" : "Sending"}
+        </span>
+        <span className="text-sm font-bold text-gray-800">
+          {transferProgress}%
+        </span>
       </div>
-      <p className="text-sm font-medium text-gray-700">
-        {incomingFile ? "Receiving..." : "Sending..."}
-      </p>
-      <p className="text-xs text-gray-500 mt-1">
-        {incomingFile?.name || selectedFile?.name || ""}
+
+      <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-gray-900 rounded-full transition-all duration-300 ease-out"
+          style={{ width: `${transferProgress}%` }}
+        />
+      </div>
+
+      <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+        <span>
+          {formatBytes(transferredBytes)} / {formatBytes(totalBytes)}
+        </span>
+        {transferSpeed > 0 && <span>{formatSpeed(transferSpeed)}</span>}
+      </div>
+
+      <p className="text-xs text-gray-500 mt-3 text-center">
+        {selectedFile?.name || incomingFile?.name || ""}
       </p>
     </div>
   );

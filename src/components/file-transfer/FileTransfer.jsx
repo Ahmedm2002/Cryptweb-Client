@@ -14,6 +14,7 @@ const FileTransfer = ({ friendEmail, status }) => {
     isTransferring,
     incomingFile,
     transferComplete,
+    transferSpeed,
     sendSecuredFile,
     downloadFile,
     clearFile,
@@ -31,6 +32,7 @@ const FileTransfer = ({ friendEmail, status }) => {
         <div className="border-2 border-dashed border-gray-200 bg-white rounded-xl flex flex-col items-center justify-center p-8 min-h-[280px]">
           <FileTransferProgress
             transferProgress={transferProgress}
+            transferSpeed={transferSpeed}
             incomingFile={incomingFile}
             selectedFile={selectedFile}
           />
