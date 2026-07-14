@@ -8,6 +8,8 @@ const SOCKET_EVENTS = {
   DISCONNECT: "disconnect",
   CONNECT: "connect",
   OFFER: "offer",
+  PEER_DISCONNECTED: "peer:disconnected",
+  USERS_CONNECTED: "users:connected",
 };
 
 export { SOCKET_EVENTS };

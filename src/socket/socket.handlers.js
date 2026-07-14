@@ -53,6 +53,11 @@ function emitIceCandidate(fromEmail, toEmail, candidate) {
   });
 }
 
+function emitUsersConnected(initiator, receiver) {
+  if (!socket) return;
+  socket.emit(SOCKET_EVENTS.USERS_CONNECTED, { initiator, receiver });
+}
+
 export {
   emitConnectionResponse,
   emitIceCandidate,
@@ -60,4 +65,5 @@ export {
   emitWebRTCAnswer,
   emitWebRTCOffer,
   emitConnectionRequest,
+  emitUsersConnected,
 };

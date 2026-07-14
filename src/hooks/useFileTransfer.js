@@ -1,7 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useSocket } from "../socket/useSocket";
 
-function useFileTransfer(friendEmail, user) {
+const MAX_SEND_RETRIES = 5;
+
+function useFileTransfer(friendEmail, user, peerDisconnected) {
   const { subscribeToDataChannel, sendDataViaWebRTC } = useSocket();
 
   const [selectedFile, setSelectedFile] = useState(null);
@@ -9,11 +11,14 @@ function useFileTransfer(friendEmail, user) {
   const [transferProgress, setTransferProgress] = useState(0);
   const [isTransferring, setIsTransferring] = useState(false);
   const [transferComplete, setTransferComplete] = useState(false);
+  const [transferFailed, setTransferFailed] = useState(false);
   const [receivedBlob, setReceivedBlob] = useState(null);
   const [transferSpeed, setTransferSpeed] = useState(0);
 
   const incomingChunks = useRef([]);
   const startTime = useRef(null);
+  const sendRetryCount = useRef(0);
+  const cancelledRef = useRef(false);
 
   const assembleBlob = (base64Chunks) => {
     const byteArrays = [];
@@ -39,12 +44,11 @@ function useFileTransfer(friendEmail, user) {
           type: msg.fileType,
           totalChunks: msg.totalChunks,
         });
-    incomingChunks.current = [];
-    startTime.current = null;
-    setTransferSpeed(0);
+        incomingChunks.current = [];
         setTransferProgress(0);
         setIsTransferring(true);
         setTransferComplete(false);
+        setTransferFailed(false);
         startTime.current = Date.now();
         setTransferSpeed(0);
       } else if (msg.type === "chunk" || msg.data) {
@@ -81,35 +85,54 @@ function useFileTransfer(friendEmail, user) {
     }
   }, [subscribeToDataChannel, onMessage]);
 
-  const sendSecuredFile = () => {
+  useEffect(() => {
+    if (peerDisconnected && isTransferring) {
+      cancelledRef.current = true;
+      setTransferFailed(true);
+      setIsTransferring(false);
+      setTransferSpeed(0);
+    }
+  }, [peerDisconnected]);
+
+  const sendSecuredFile = async () => {
     if (!selectedFile) return;
 
+    cancelledRef.current = false;
+    sendRetryCount.current = 0;
     setIsTransferring(true);
     setTransferProgress(0);
     setTransferComplete(false);
+    setTransferFailed(false);
     startTime.current = Date.now();
     setTransferSpeed(0);
 
     const CHUNK_SIZE = 16384;
     const totalChunks = Math.ceil(selectedFile.size / CHUNK_SIZE);
 
-    sendDataViaWebRTC(
-      JSON.stringify({
-        type: "metadata",
-        fileName: selectedFile.name,
-        fileSize: selectedFile.size,
-        fileType: selectedFile.type,
-        totalChunks,
-      }),
-    );
+    try {
+      await sendDataViaWebRTC(
+        JSON.stringify({
+          type: "metadata",
+          fileName: selectedFile.name,
+          fileSize: selectedFile.size,
+          fileType: selectedFile.type,
+          totalChunks,
+        }),
+      );
+    } catch {
+      setTransferFailed(true);
+      setIsTransferring(false);
+      return;
+    }
 
     let chunkId = 0;
     let offset = 0;
 
-    const reader = new FileReader();
+    const sendNextChunk = async () => {
+      if (cancelledRef.current) return;
 
-    reader.onload = (e) => {
-      const arrayBuffer = e.target.result;
+      const slice = selectedFile.slice(offset, offset + CHUNK_SIZE);
+      const arrayBuffer = await slice.arrayBuffer();
       let binary = "";
       const bytes = new Uint8Array(arrayBuffer);
       for (let i = 0; i < bytes.byteLength; i++) {
@@ -119,51 +142,70 @@ function useFileTransfer(friendEmail, user) {
 
       const isCompleted = chunkId === totalChunks - 1;
 
-      sendDataViaWebRTC(
-        JSON.stringify({
-          chunkId: chunkId + 1,
-          totalChunks,
-          data: base64Data,
-          isCompleted,
-        }),
-      );
+      try {
+        await sendDataViaWebRTC(
+          JSON.stringify({
+            chunkId: chunkId + 1,
+            totalChunks,
+            data: base64Data,
+            isCompleted,
+          }),
+        );
 
-      chunkId++;
-      offset += CHUNK_SIZE;
-      const progress = Math.round((chunkId / totalChunks) * 100);
-      setTransferProgress(progress);
+        sendRetryCount.current = 0;
+        chunkId++;
+        offset += CHUNK_SIZE;
+        const progress = Math.round((chunkId / totalChunks) * 100);
+        setTransferProgress(progress);
 
-      if (startTime.current) {
-        const elapsed = (Date.now() - startTime.current) / 1000;
-        if (elapsed > 0) {
-          setTransferSpeed(offset / elapsed);
+        if (startTime.current) {
+          const elapsed = (Date.now() - startTime.current) / 1000;
+          if (elapsed > 0) {
+            setTransferSpeed(offset / elapsed);
+          }
         }
-      }
 
-      if (offset < selectedFile.size) {
-        setTimeout(readNextChunk, 5);
-      } else {
-        setIsTransferring(false);
-        setTransferComplete(true);
+        if (offset < selectedFile.size) {
+          setTimeout(() => sendNextChunk(), 5);
+        } else {
+          setIsTransferring(false);
+          setTransferComplete(true);
+        }
+      } catch {
+        sendRetryCount.current++;
+        if (sendRetryCount.current >= MAX_SEND_RETRIES || cancelledRef.current) {
+          setTransferFailed(true);
+          setIsTransferring(false);
+          return;
+        }
+        setTimeout(() => sendNextChunk(), 200);
       }
     };
 
-    const readNextChunk = () => {
-      const slice = selectedFile.slice(offset, offset + CHUNK_SIZE);
-      reader.readAsArrayBuffer(slice);
-    };
+    sendNextChunk();
+  };
 
-    readNextChunk();
+  const retryTransfer = () => {
+    setTransferFailed(false);
+    setTransferProgress(0);
+    sendRetryCount.current = 0;
+    cancelledRef.current = false;
+    setTimeout(() => sendSecuredFile(), 100);
   };
 
   const clearFile = () => {
+    cancelledRef.current = true;
     setSelectedFile(null);
     setIncomingFile(null);
     setTransferProgress(0);
     setIsTransferring(false);
     setTransferComplete(false);
+    setTransferFailed(false);
     setReceivedBlob(null);
     incomingChunks.current = [];
+    startTime.current = null;
+    setTransferSpeed(0);
+    sendRetryCount.current = 0;
   };
 
   const downloadFile = () => {
@@ -187,8 +229,10 @@ function useFileTransfer(friendEmail, user) {
     isTransferring,
     incomingFile,
     transferComplete,
+    transferFailed,
     transferSpeed,
     sendSecuredFile,
+    retryTransfer,
     downloadFile,
     clearFile,
   };

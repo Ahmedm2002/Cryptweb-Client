@@ -5,7 +5,7 @@ import EmailInput from "../components/EmailInput";
 import { useSocket } from "../socket/useSocket";
 import FileTransfer from "../components/file-transfer/FileTransfer";
 import IncomingRequest from "../components/dashboard/ConnectionStatus/IncomingRequest";
-import { LogOut, AlertTriangle } from "lucide-react";
+import { LogOut, AlertTriangle, X, WifiOff } from "lucide-react";
 
 function Home() {
   const { user } = useAuth();
@@ -19,6 +19,8 @@ function Home() {
     setConnectionError,
     disconnectFromFriend,
     connectedFriend,
+    peerDisconnected,
+    clearPeerDisconnected,
   } = useSocket();
 
   useEffect(() => {
@@ -136,6 +138,30 @@ function Home() {
           />
         )}
       </div>
+
+      {peerDisconnected && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 overflow-hidden">
+            <div className="flex flex-col items-center px-6 pt-8 pb-2">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mb-4">
+                <WifiOff size={24} className="text-red-600" />
+              </div>
+              <p className="text-center text-sm text-gray-700 leading-relaxed">
+                {peerDisconnected.message}
+              </p>
+            </div>
+            <div className="px-6 pt-4 pb-6 flex justify-center">
+              <button
+                onClick={clearPeerDisconnected}
+                className="px-6 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors flex items-center gap-2"
+              >
+                <X size={14} />
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -35,6 +35,8 @@ class RTCPeer {
     this._isInitiator = false;
     this._rtcConnection = null;
     this._dataChannel = null;
+    this._bufferedAmountLowThreshold = 262144;
+    this._pendingSends = [];
   }
 
   /**
@@ -123,7 +125,12 @@ class RTCPeer {
    * Configures data channel event listeners.
    */
   setupDataChannel() {
-    this._dataChannel.onopen = () => {};
+    this._dataChannel.bufferedAmountLowThreshold =
+      this._bufferedAmountLowThreshold;
+
+    this._dataChannel.onopen = () => {
+      this._flushPendingSends();
+    };
 
     this._dataChannel.onmessage = (event) => {
       this._onDataChannelMessage?.(event.data);
@@ -136,19 +143,60 @@ class RTCPeer {
     this._dataChannel.onclose = () => {
       console.log(`Data channel closed ${this._remotePeerEmail}`);
     };
+
+    this._dataChannel.onbufferedamountlow = () => {
+      this._flushPendingSends();
+    };
   }
 
   /**
-   * Sends data through WebRTC data channel.
+   * Drains queued sends when buffer space is available.
+   */
+  _flushPendingSends() {
+    while (this._pendingSends.length > 0) {
+      if (
+        this._dataChannel.readyState !== "open" ||
+        this._dataChannel.bufferedAmount >= this._bufferedAmountLowThreshold
+      ) {
+        break;
+      }
+      const entry = this._pendingSends.shift();
+      try {
+        this._dataChannel.send(entry.data);
+        entry.resolve(true);
+      } catch (err) {
+        entry.reject(err);
+      }
+    }
+  }
+
+  /**
+   * Sends data through WebRTC data channel with backpressure handling.
+   * Returns a promise that resolves when the data is buffered or rejected on failure.
    * @param {any} data - Serializable payload to send.
-   * @returns {boolean} true if sent, false if channel is not open.
+   * @returns {Promise<boolean>}
    */
   sendData(data) {
-    if (this._dataChannel && this._dataChannel.readyState === "open") {
-      this._dataChannel.send(data);
-      return true;
-    }
-    return false;
+    return new Promise((resolve, reject) => {
+      if (!this._dataChannel || this._dataChannel.readyState !== "open") {
+        reject(new Error("Data channel is not open"));
+        return;
+      }
+
+      if (
+        this._dataChannel.bufferedAmount >= this._bufferedAmountLowThreshold
+      ) {
+        this._pendingSends.push({ data, resolve, reject });
+        return;
+      }
+
+      try {
+        this._dataChannel.send(data);
+        resolve(true);
+      } catch (err) {
+        reject(err);
+      }
+    });
   }
 
   /**

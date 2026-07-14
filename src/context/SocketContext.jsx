@@ -12,6 +12,7 @@ import {
   emitRegisterUser,
   emitConnectionRequest,
   emitConnectionResponse,
+  emitUsersConnected,
 } from "../socket/socket.handlers.js";
 
 export const SocketContext = createContext(null);
@@ -27,8 +28,10 @@ export const SocketProvider = ({ children }) => {
   const [isConnectedWithFriend, setIsConnectedWithFriend] = useState(false);
   const [connectionError, setConnectionError] = useState(null);
   const [connectedFriend, setConnectedFriend] = useState(null);
+  const [peerDisconnected, setPeerDisconnected] = useState(null);
   const peerRef = useRef(null);
   const pendingFriendInfo = useRef(null);
+  const isInitiatorRef = useRef(false);
 
   useEffect(() => {
     if (!user) return;
@@ -59,6 +62,7 @@ export const SocketProvider = ({ children }) => {
     socket.on(SOCKET_EVENTS.OFFER, onOffer);
     socket.on(SOCKET_EVENTS.ANSWER, onAnswer);
     socket.on(SOCKET_EVENTS.ICE_CANDIDATE, onIceCandidate);
+    socket.on(SOCKET_EVENTS.PEER_DISCONNECTED, onPeerDisconnected);
 
     if (!socket.connected) {
       socket.connect();
@@ -74,6 +78,7 @@ export const SocketProvider = ({ children }) => {
       socket.off(SOCKET_EVENTS.OFFER, onOffer);
       socket.off(SOCKET_EVENTS.ANSWER, onAnswer);
       socket.off(SOCKET_EVENTS.ICE_CANDIDATE, onIceCandidate);
+      socket.off(SOCKET_EVENTS.PEER_DISCONNECTED, onPeerDisconnected);
       if (peerRef.current) {
         peerRef.current.close();
         peerRef.current = null;
@@ -83,6 +88,7 @@ export const SocketProvider = ({ children }) => {
 
   function onIncomingRequest(data) {
     setIsInitiator(false);
+    isInitiatorRef.current = false;
     setIncomingRequest(data);
     pendingFriendInfo.current = {
       email: data.from,
@@ -92,6 +98,7 @@ export const SocketProvider = ({ children }) => {
 
   function updateFriendsStatus(data) {
     setIsInitiator(true);
+    isInitiatorRef.current = true;
     if (!data) {
       setFriendStatus(null);
       return;
@@ -123,6 +130,13 @@ export const SocketProvider = ({ children }) => {
     if (pendingFriendInfo.current) {
       setConnectedFriend({ ...pendingFriendInfo.current });
     }
+    const myEmail = user?.email;
+    const friendEmail = pendingFriendInfo.current?.email;
+    if (myEmail && friendEmail) {
+      const initiator = isInitiatorRef.current ? myEmail : friendEmail;
+      const receiver = isInitiatorRef.current ? friendEmail : myEmail;
+      emitUsersConnected(initiator, receiver);
+    }
   }
 
   function onPeerError(msg) {
@@ -131,8 +145,23 @@ export const SocketProvider = ({ children }) => {
     setConnectedFriend(null);
   }
 
+  function onPeerDisconnected(data) {
+    setPeerDisconnected(data);
+    setConnectedFriend(null);
+    setIsConnectedWithFriend(false);
+    if (peerRef.current) {
+      peerRef.current.close();
+      peerRef.current = null;
+    }
+  }
+
+  function clearPeerDisconnected() {
+    setPeerDisconnected(null);
+  }
+
   function onConnectionResponse(data) {
     setIsInitiator(true);
+    isInitiatorRef.current = true;
     if (data?.accepted) {
       setConnectionError(null);
       peerRef.current = null;
@@ -149,6 +178,7 @@ export const SocketProvider = ({ children }) => {
       console.log(`[WebRTC] Connection rejected by ${data?.from}`);
       setFriendStatus(null);
       setIsInitiator(false);
+      isInitiatorRef.current = false;
       setConnectionError(
         `Connection request was rejected by ${data?.from || "the recipient"}.`,
       );
@@ -194,7 +224,7 @@ export const SocketProvider = ({ children }) => {
     if (peerRef.current) {
       return peerRef.current.sendData(data);
     }
-    return false;
+    return Promise.reject(new Error("No peer connection"));
   }
 
   function disconnectFromFriend() {
@@ -206,6 +236,7 @@ export const SocketProvider = ({ children }) => {
     setIsConnectedWithFriend(false);
     setFriendStatus(null);
     setIsInitiator(false);
+    isInitiatorRef.current = false;
     setConnectionError(null);
     setConnectedFriend(null);
   }
@@ -226,6 +257,8 @@ export const SocketProvider = ({ children }) => {
         setConnectionError,
         disconnectFromFriend,
         connectedFriend,
+        peerDisconnected,
+        clearPeerDisconnected,
       }}
     >
       {children}
