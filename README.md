@@ -36,9 +36,9 @@ The `RTCPeer` class wraps a single `RTCPeerConnection`. It creates a data channe
 
 The most important detail in this file is how `sendData()` handles flow control. When you send data over an RTCDataChannel faster than the remote side can consume it, the browser's internal buffer fills up. If you keep sending, Chrome (and other browsers) throw an `OperationError` with "RTCDataChannel send queue is full".
 
-To prevent this, `sendData()` checks `bufferedAmount` against a threshold of 256KB before every send. If the buffer is already too full, the message goes into a `_pendingSends` array instead of being written to the channel. The method returns a promise that resolves when the data is actually sent. The `bufferedamountlow` event fires when the buffer drains below the threshold, and `_flushPendingSends()` writes queued messages at that point.
+To prevent this, `sendData()` checks `bufferedAmount` against a threshold of 256KB before every send. If the buffer is full, it does not queue the message or use event-driven draining. Instead, it polls: waits 200ms, checks `bufferedAmount` again, and retries. Once the buffer has room, it sends the data directly through the channel. The method returns a promise that resolves when the data is actually buffered.
 
-This makes the data channel self-regulating. The remote side's receiving speed controls how fast we send. No messages are dropped, and no errors are thrown due to buffer overflow.
+This approach avoids the overhead of managing a promise queue per chunk. The only active promise per chunk is the one returned by `sendData()`, which either resolves immediately (buffer has space) or after a short polling delay. The remote side's receiving speed still controls the flow — chunk sends naturally slow down when the buffer is full and speed up when it drains — but without any event wiring or queue management.
 
 ### ICE server configuration
 
