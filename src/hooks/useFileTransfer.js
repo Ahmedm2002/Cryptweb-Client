@@ -3,8 +3,9 @@ import { useSocket } from "../socket/useSocket";
 import { api } from "../services/api.js";
 
 const MAX_SEND_RETRIES = 5;
-const CHUNK_SIZE = 65536;
+const CHUNK_SIZE = 262144;
 const TRANSFER_TIMEOUT_MS = 60000;
+const PROGRESS_THROTTLE_MS = 80;
 
 function useFileTransfer(friendEmail, user, peerDisconnected) {
   const { subscribeToDataChannel, sendDataViaWebRTC, isDataChannelOpen } =
@@ -26,6 +27,8 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
   const abortControllerRef = useRef(null);
   const timeoutRef = useRef(null);
   const lastProgressTimeRef = useRef(null);
+  const lastRenderTimeRef = useRef(0);
+  const headerBufferRef = useRef(null);
 
   const clearTransferTimeout = () => {
     if (timeoutRef.current) {
@@ -55,7 +58,7 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
       const timeElapsed = (Date.now() - startTimeRef.current) / 1000;
 
       api
-        .post("/v1/file-transfers/complete", {
+        .post("/file-transfers/complete", {
           senderEmail: transferType === "send" ? user.email : friendEmail,
           receiverEmail: transferType === "send" ? friendEmail : user.email,
           fileName,
@@ -69,114 +72,116 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
     [user, friendEmail],
   );
 
-  const onMessage = useCallback(
-    (data) => {
-      try {
-        if (typeof data === "string") {
-          const msg = JSON.parse(data);
+  const onMessage = useCallback((data) => {
+    try {
+      if (typeof data === "string") {
+        const msg = JSON.parse(data);
 
-          if (msg.type === "metadata") {
-            receivedChunksRef.current = [];
-            incomingFileRef.current = {
-              name: msg.fileName,
-              size: msg.fileSize,
-              type: msg.fileType,
-              totalChunks: msg.totalChunks,
-            };
-            setIncomingFile({ ...incomingFileRef.current });
-            setTransferProgress(0);
-            setIsTransferring(true);
-            setTransferComplete(false);
-            setTransferFailed(false);
-            setTransferSpeed(0);
-            startTimeRef.current = Date.now();
-          } else if (msg.type === "complete") {
-            clearTransferTimeout();
-            setIsTransferring(false);
-            setTransferComplete(true);
-            setTransferSpeed(0);
+        if (msg.type === "metadata") {
+          receivedChunksRef.current = [];
+          incomingFileRef.current = {
+            name: msg.fileName,
+            size: msg.fileSize,
+            type: msg.fileType,
+            totalChunks: msg.totalChunks,
+          };
+          setIncomingFile({ ...incomingFileRef.current });
+          setTransferProgress(0);
+          setIsTransferring(true);
+          setTransferComplete(false);
+          setTransferFailed(false);
+          setTransferSpeed(0);
+          startTimeRef.current = Date.now();
+        } else if (msg.type === "complete") {
+          clearTransferTimeout();
+          setIsTransferring(false);
+          setTransferComplete(true);
+          setTransferSpeed(0);
 
-            const totalExpected = msg.totalChunks;
-            const totalReceived = receivedChunksRef.current.length;
+          const totalExpected = msg.totalChunks;
+          const totalReceived = receivedChunksRef.current.length;
 
-            if (totalReceived !== totalExpected) {
-              console.error(
-                `Chunk count mismatch: expected ${totalExpected}, got ${totalReceived}`,
-              );
-              setTransferFailed(true);
-              setTransferComplete(false);
-              return;
-            }
-
-            const blob = new Blob(receivedChunksRef.current, {
-              type: incomingFileRef.current?.type || "application/octet-stream",
-            });
-
-            if (msg.fileSize && blob.size !== msg.fileSize) {
-              console.error(
-                `File size mismatch: expected ${msg.fileSize}, got ${blob.size}`,
-              );
-              setTransferFailed(true);
-              setTransferComplete(false);
-              return;
-            }
-
-            setReceivedBlob(blob);
-
-            const fInfo = incomingFileRef.current;
-            if (fInfo) {
-              recordTransfer({
-                fileName: fInfo.name,
-                fileSize: fInfo.size,
-                fileType: fInfo.type,
-                transferType: "receive",
-              });
-            }
-          }
-        } else if (data instanceof ArrayBuffer) {
-          if (data.byteLength < 9) return;
-
-          const view = new DataView(data);
-          const marker = view.getUint8(0);
-
-          if (marker !== 0x01) return;
-
-          const chunkIndex = view.getUint32(1, false);
-          const totalChunks = view.getUint32(5, false);
-          const raw_data = data.slice(9);
-
-          if (
-            incomingFileRef.current &&
-            totalChunks !== incomingFileRef.current.totalChunks
-          ) {
+          if (totalReceived !== totalExpected) {
             console.error(
-              `Total chunks mismatch in chunk ${chunkIndex}: expected ${incomingFileRef.current.totalChunks}, got ${totalChunks}`,
+              `Chunk count mismatch: expected ${totalExpected}, got ${totalReceived}`,
             );
+            setTransferFailed(true);
+            setTransferComplete(false);
+            return;
           }
 
-          receivedChunksRef.current.push(raw_data);
+          const blob = new Blob(receivedChunksRef.current, {
+            type: incomingFileRef.current?.type || "application/octet-stream",
+          });
 
-          const currentProgress = Math.round(
-            ((chunkIndex + 1) / totalChunks) * 100,
+          if (msg.fileSize && blob.size !== msg.fileSize) {
+            console.error(
+              `File size mismatch: expected ${msg.fileSize}, got ${blob.size}`,
+            );
+            setTransferFailed(true);
+            setTransferComplete(false);
+            return;
+          }
+
+          setReceivedBlob(blob);
+
+          const fInfo = incomingFileRef.current;
+          if (fInfo) {
+            recordTransfer({
+              fileName: fInfo.name,
+              fileSize: fInfo.size,
+              fileType: fInfo.type,
+              transferType: "receive",
+            });
+          }
+        }
+      } else if (data instanceof ArrayBuffer) {
+        if (data.byteLength < 9) return;
+
+        const view = new DataView(data);
+        const marker = view.getUint8(0);
+
+        if (marker !== 0x01) return;
+
+        const chunkIndex = view.getUint32(1, false);
+        const totalChunks = view.getUint32(5, false);
+        const raw_data = data.slice(9);
+
+        if (
+          incomingFileRef.current &&
+          totalChunks !== incomingFileRef.current.totalChunks
+        ) {
+          console.error(
+            `Total chunks mismatch in chunk ${chunkIndex}: expected ${incomingFileRef.current.totalChunks}, got ${totalChunks}`,
           );
+        }
+
+        receivedChunksRef.current.push(raw_data);
+
+        const currentProgress = Math.round(
+          ((chunkIndex + 1) / totalChunks) * 100,
+        );
+        resetTransferTimeout();
+
+        const now = Date.now();
+        if (now - lastRenderTimeRef.current >= PROGRESS_THROTTLE_MS) {
+          lastRenderTimeRef.current = now;
           setTransferProgress(currentProgress);
-          resetTransferTimeout();
 
           if (startTimeRef.current && incomingFileRef.current?.size) {
-            const elapsed = (Date.now() - startTimeRef.current) / 1000;
-            if (elapsed > 0.5) {
+            const elapsed = (now - startTimeRef.current) / 1000;
+            if (elapsed > 0.3) {
               const bytesSoFar =
                 (currentProgress / 100) * incomingFileRef.current.size;
               setTransferSpeed(bytesSoFar / elapsed);
             }
           }
         }
-      } catch (err) {
-        console.error("Error processing data channel message", err);
       }
-    },
-    [],
-  );
+    } catch (err) {
+      console.error("Error processing data channel message", err);
+    }
+  }, []);
 
   useEffect(() => {
     subscribeToDataChannel(onMessage);
@@ -198,14 +203,16 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
     };
   }, []);
 
-  const sendNextChunk = async (
-    file,
-    totalChunks,
-    controller,
-  ) => {
+  const sendNextChunk = async (file, totalChunks, controller) => {
     const abortSignal = controller.signal;
     let chunkId = 0;
     let offset = 0;
+
+    if (!headerBufferRef.current) {
+      headerBufferRef.current = new ArrayBuffer(9);
+    }
+    const headerBuffer = headerBufferRef.current;
+    const headerView = new DataView(headerBuffer);
 
     const sendChunk = async () => {
       if (abortSignal.aborted) return;
@@ -220,14 +227,12 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
       const slice = file.slice(offset, offset + CHUNK_SIZE);
       const arrayBuffer = await slice.arrayBuffer();
 
-      const header = new ArrayBuffer(9);
-      const headerView = new DataView(header);
       headerView.setUint8(0, 0x01);
       headerView.setUint32(1, chunkId, false);
       headerView.setUint32(5, totalChunks, false);
 
       const combined = new Uint8Array(9 + arrayBuffer.byteLength);
-      combined.set(new Uint8Array(header), 0);
+      combined.set(new Uint8Array(headerBuffer), 0);
       combined.set(new Uint8Array(arrayBuffer), 9);
 
       try {
@@ -239,20 +244,27 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
         sendRetryCount.current = 0;
         chunkId++;
         offset += CHUNK_SIZE;
-        const progress = Math.round((chunkId / totalChunks) * 100);
-        setTransferProgress(progress);
         resetTransferTimeout();
 
-        if (startTimeRef.current) {
-          const elapsed = (Date.now() - startTimeRef.current) / 1000;
-          if (elapsed > 0.5) {
-            setTransferSpeed(offset / elapsed);
+        const now = Date.now();
+        if (now - lastRenderTimeRef.current >= PROGRESS_THROTTLE_MS) {
+          lastRenderTimeRef.current = now;
+          const progress = Math.round((chunkId / totalChunks) * 100);
+          setTransferProgress(progress);
+
+          if (startTimeRef.current) {
+            const elapsed = (now - startTimeRef.current) / 1000;
+            if (elapsed > 0.3) {
+              setTransferSpeed(offset / elapsed);
+            }
           }
         }
 
         if (offset < file.size && !abortSignal.aborted) {
-          setTimeout(sendChunk, 0);
+          sendChunk();
         } else if (!abortSignal.aborted) {
+          setTransferProgress(100);
+
           try {
             await sendDataViaWebRTC(
               JSON.stringify({
@@ -296,10 +308,7 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
         }
 
         sendRetryCount.current++;
-        if (
-          sendRetryCount.current >= MAX_SEND_RETRIES ||
-          abortSignal.aborted
-        ) {
+        if (sendRetryCount.current >= MAX_SEND_RETRIES || abortSignal.aborted) {
           setTransferFailed(true);
           setIsTransferring(false);
           setTransferSpeed(0);

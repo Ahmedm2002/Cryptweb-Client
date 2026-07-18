@@ -21,6 +21,8 @@ function Home() {
     connectedFriend,
     peerDisconnected,
     clearPeerDisconnected,
+    connectionPhase,
+    connectingTo,
   } = useSocket();
 
   useEffect(() => {
@@ -117,11 +119,16 @@ function Home() {
           onRespond={respondToRequest}
         />
 
-        {friendStatus && !isConnectedWithFriend && (
+        {connectionPhase && !isConnectedWithFriend && (
           <div className="w-full max-w-md p-4 bg-white border border-gray-200 rounded-lg shadow-sm text-center">
+            <div className="flex items-center justify-center gap-2 mb-2">
+              <span className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse" />
+            </div>
             <p className="text-gray-600 text-sm">
-              Establishing direct connection with{" "}
-              {friendStatus.data?.name || friendStatus.data?.email}...
+              {connectionPhase === "requesting" &&
+                `Looking for ${connectingTo || "your friend"}...`}
+              {connectionPhase === "negotiating" &&
+                `Establishing secure connection with ${connectingTo || "your friend"}...`}
             </p>
           </div>
         )}
