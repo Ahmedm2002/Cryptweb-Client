@@ -5,6 +5,9 @@ import {
   emitWebRTCOffer,
 } from "../socket/socket.handlers";
 
+const BUFFER_LOW_THRESHOLD = 262144;
+const SEND_TIMEOUT_MS = 30000;
+
 class RTCPeer {
   _maxRetryCount = 5;
 
@@ -25,7 +28,6 @@ class RTCPeer {
     this._isInitiator = false;
     this._rtcConnection = null;
     this._dataChannel = null;
-    this._bufferedAmountLowThreshold = 262144;
   }
 
   init() {
@@ -89,46 +91,122 @@ class RTCPeer {
       const offer = await this._rtcConnection.createOffer();
       await this._rtcConnection.setLocalDescription(offer);
       emitWebRTCOffer(this._localEmail, this._remotePeerEmail, offer);
-    } catch (err) {
+    } catch {
       this._onConnectionFailure?.(this.unableToConnect());
     }
   }
 
   setupDataChannel() {
+    this._dataChannel.bufferedAmountLowThreshold = BUFFER_LOW_THRESHOLD;
+
+    this._dataChannel.onopen = () => {
+      console.log(`Data channel open with ${this._remotePeerEmail}`);
+    };
+
     this._dataChannel.onmessage = (event) => {
       this._onDataChannelMessage?.(event.data);
     };
 
     this._dataChannel.onerror = (error) => {
-      console.log(`Data channel error: ${error})`);
+      console.error(`Data channel error:`, error);
     };
 
     this._dataChannel.onclose = () => {
-      console.log(`Data channel closed ${this._remotePeerEmail}`);
+      console.log(`Data channel closed with ${this._remotePeerEmail}`);
     };
   }
 
-  sendData(data) {
+  isDataChannelOpen() {
+    return this._dataChannel?.readyState === "open";
+  }
+
+  sendData(data, { signal, timeoutMs = SEND_TIMEOUT_MS } = {}) {
     return new Promise((resolve, reject) => {
-      function trySend() {
+      if (signal?.aborted) {
+        return reject(new Error("Transfer aborted"));
+      }
+
+      if (!this._dataChannel || this._dataChannel.readyState !== "open") {
+        return reject(new Error("Data channel is not open"));
+      }
+
+      let drainHandler = null;
+      let settled = false;
+
+      const timer = setTimeout(() => {
+        if (!settled) {
+          settled = true;
+          cleanup();
+          reject(new Error("Send timeout: buffer not draining"));
+        }
+      }, timeoutMs);
+
+      const onAbort = () => {
+        if (!settled) {
+          settled = true;
+          cleanup();
+          reject(new Error("Transfer aborted"));
+        }
+      };
+
+      signal?.addEventListener("abort", onAbort, { once: true });
+
+      const cleanup = () => {
+        clearTimeout(timer);
+        signal?.removeEventListener("abort", onAbort);
+        if (drainHandler && this._dataChannel) {
+          this._dataChannel.removeEventListener(
+            "bufferedamountlow",
+            drainHandler,
+          );
+          drainHandler = null;
+        }
+      };
+
+      const attempt = () => {
+        if (settled) return;
+
+        if (signal?.aborted) {
+          settled = true;
+          cleanup();
+          return reject(new Error("Transfer aborted"));
+        }
+
         if (!this._dataChannel || this._dataChannel.readyState !== "open") {
-          reject(new Error("Data channel is not open"));
-          return;
+          settled = true;
+          cleanup();
+          return reject(new Error("Data channel closed during transfer"));
         }
+
         if (
-          this._dataChannel.bufferedAmount >= this._bufferedAmountLowThreshold
+          this._dataChannel.bufferedAmount >
+          this._dataChannel.bufferedAmountLowThreshold
         ) {
-          setTimeout(trySend, 200);
+          drainHandler = () => {
+            drainHandler = null;
+            attempt();
+          };
+          this._dataChannel.addEventListener(
+            "bufferedamountlow",
+            drainHandler,
+            { once: true },
+          );
           return;
         }
+
         try {
           this._dataChannel.send(data);
-          resolve(true);
+          settled = true;
+          cleanup();
+          resolve();
         } catch (err) {
+          settled = true;
+          cleanup();
           reject(err);
         }
-      }
-      trySend();
+      };
+
+      attempt();
     });
   }
 
@@ -179,14 +257,20 @@ class RTCPeer {
   }
 
   close() {
-    this._dataChannel?.close();
-    this._rtcConnection?.close();
+    if (this._dataChannel) {
+      try { this._dataChannel.close(); } catch { /* already closed */ }
+      this._dataChannel = null;
+    }
+    if (this._rtcConnection) {
+      try { this._rtcConnection.close(); } catch { /* already closed */ }
+      this._rtcConnection = null;
+    }
   }
 
   unableToConnect() {
     return this._remotePeerEmail
       ? `Unable to connect directly to ${this._remotePeerEmail}.`
-      : "Unalbe to connect directly";
+      : "Unable to connect directly";
   }
 }
 

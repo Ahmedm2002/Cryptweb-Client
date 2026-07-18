@@ -32,6 +32,7 @@ export const SocketProvider = ({ children }) => {
   const peerRef = useRef(null);
   const pendingFriendInfo = useRef(null);
   const isInitiatorRef = useRef(false);
+  const dataChannelCallbackRef = useRef(null);
 
   useEffect(() => {
     if (!user) return;
@@ -172,6 +173,7 @@ export const SocketProvider = ({ children }) => {
         onPeerConnected,
         onPeerError,
       );
+      peerRef.current._onDataChannelMessage = dataChannelCallbackRef.current;
       peerRef.current.init();
       peerRef.current.createOffer();
     } else {
@@ -197,6 +199,7 @@ export const SocketProvider = ({ children }) => {
       onPeerConnected,
       onPeerError,
     );
+    peerRef.current._onDataChannelMessage = dataChannelCallbackRef.current;
     peerRef.current.init();
     peerRef.current.handleOffer(data.offer);
   }
@@ -215,14 +218,19 @@ export const SocketProvider = ({ children }) => {
   }
 
   function subscribeToDataChannel(callback) {
+    dataChannelCallbackRef.current = callback;
     if (peerRef.current) {
       peerRef.current._onDataChannelMessage = callback;
     }
   }
 
-  function sendDataViaWebRTC(data) {
+  function isDataChannelOpen() {
+    return peerRef.current?.isDataChannelOpen() ?? false;
+  }
+
+  function sendDataViaWebRTC(data, options) {
     if (peerRef.current) {
-      return peerRef.current.sendData(data);
+      return peerRef.current.sendData(data, options);
     }
     return Promise.reject(new Error("No peer connection"));
   }
@@ -253,6 +261,7 @@ export const SocketProvider = ({ children }) => {
         respondToRequest,
         subscribeToDataChannel,
         sendDataViaWebRTC,
+        isDataChannelOpen,
         connectionError,
         setConnectionError,
         disconnectFromFriend,
