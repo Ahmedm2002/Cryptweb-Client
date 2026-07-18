@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useSocket } from "../socket/useSocket";
+import { api } from "../services/api.js";
 
 const MAX_SEND_RETRIES = 5;
 const CHUNK_SIZE = 65536;
@@ -46,6 +47,27 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
     abortControllerRef.current = null;
     sendRetryCount.current = 0;
   }, []);
+
+  const recordTransfer = useCallback(
+    ({ fileName, fileSize, fileType, transferType }) => {
+      if (!user?.email || !friendEmail || !startTimeRef.current) return;
+
+      const timeElapsed = (Date.now() - startTimeRef.current) / 1000;
+
+      api
+        .post("/v1/file-transfers/complete", {
+          senderEmail: transferType === "send" ? user.email : friendEmail,
+          receiverEmail: transferType === "send" ? friendEmail : user.email,
+          fileName,
+          fileSize,
+          fileType,
+          timeElapsed,
+          transferType,
+        })
+        .catch(() => {});
+    },
+    [user, friendEmail],
+  );
 
   const onMessage = useCallback(
     (data) => {
@@ -100,6 +122,16 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
             }
 
             setReceivedBlob(blob);
+
+            const fInfo = incomingFileRef.current;
+            if (fInfo) {
+              recordTransfer({
+                fileName: fInfo.name,
+                fileSize: fInfo.size,
+                fileType: fInfo.type,
+                transferType: "receive",
+              });
+            }
           }
         } else if (data instanceof ArrayBuffer) {
           if (data.byteLength < 9) return;
@@ -230,16 +262,24 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
               }),
               { signal: abortSignal, timeoutMs: TRANSFER_TIMEOUT_MS },
             );
-      } catch {
-        if (!abortSignal.aborted) {
-          console.error("Failed to send completion signal");
-        }
+          } catch {
+            if (!abortSignal.aborted) {
+              console.error("Failed to send completion signal");
+            }
           }
+
           clearTransferTimeout();
           setIsTransferring(false);
           setTransferComplete(true);
           setTransferSpeed(0);
           cleanup();
+
+          recordTransfer({
+            fileName: file.name,
+            fileSize: file.size,
+            fileType: file.type,
+            transferType: "send",
+          });
         }
       } catch (err) {
         if (abortSignal.aborted) return;
