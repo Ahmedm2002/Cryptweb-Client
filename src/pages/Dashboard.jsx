@@ -1,12 +1,11 @@
 import DashboardLayout from "../components/layout/DashboardLayout";
 import Home from "./Home";
-function Dashboard() {
-
+function Dashboard({ children }) {
 
   return (
     <>
       <DashboardLayout>
-        <Home />
+        {children || <Home />}
       </DashboardLayout>
     </>
   );

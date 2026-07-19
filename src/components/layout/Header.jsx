@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-import { LogOut } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { LogOut, Clock } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 
 export const Header = ({ onLogoutConfirm }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -42,6 +44,17 @@ export const Header = ({ onLogoutConfirm }) => {
 
         {dropdownOpen && (
           <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50">
+            <button
+              onClick={() => {
+                setDropdownOpen(false);
+                navigate("/transfers");
+              }}
+              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <Clock size={16} className="text-gray-400" />
+              Recent Transfers
+            </button>
+            <div className="border-t border-gray-100 my-1"></div>
             <button
               onClick={() => {
                 setDropdownOpen(false);

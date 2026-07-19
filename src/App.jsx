@@ -19,6 +19,7 @@ import { About } from "./pages/About.jsx";
 import { Contact } from "./pages/Contact.jsx";
 import { NotFound } from "./pages/NotFound.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+import RecentTransfers from "./pages/RecentTransfers.jsx";
 
 const AuthRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -36,7 +37,7 @@ const GuestRoute = ({ children }) => {
 
 const ConditionalNavbar = ({ menuItems }) => {
   const location = useLocation();
-  const hideNavbarRoutes = ["/home", "/profile", "/settings"];
+  const hideNavbarRoutes = ["/home", "/profile", "/settings", "/transfers"];
   const shouldHide = hideNavbarRoutes.some((path) =>
     location.pathname.startsWith(path),
   );
@@ -98,6 +99,16 @@ const AppContent = () => {
             element={
               <AuthRoute>
                 <Dashboard />
+              </AuthRoute>
+            }
+          />
+          <Route
+            path="/transfers"
+            element={
+              <AuthRoute>
+                <Dashboard>
+                  <RecentTransfers />
+                </Dashboard>
               </AuthRoute>
             }
           />
