@@ -13,7 +13,11 @@ import {
   emitConnectionRequest,
   emitConnectionResponse,
   emitUsersConnected,
+  emitNetworkUsers,
 } from "../socket/socket.handlers.js";
+import createLogger from "../utils/logger/devLogger.js";
+
+const log = createLogger("Socket");
 
 export const SocketContext = createContext(null);
 
@@ -31,6 +35,7 @@ export const SocketProvider = ({ children }) => {
   const [peerDisconnected, setPeerDisconnected] = useState(null);
   const [connectionPhase, setConnectionPhase] = useState(null);
   const [connectingTo, setConnectingTo] = useState(null);
+  const [networkUsers, setNetworkUsers] = useState([]);
   const peerRef = useRef(null);
   const pendingFriendInfo = useRef(null);
   const isInitiatorRef = useRef(false);
@@ -80,6 +85,9 @@ export const SocketProvider = ({ children }) => {
     socket.on(SOCKET_EVENTS.ANSWER, onAnswer);
     socket.on(SOCKET_EVENTS.ICE_CANDIDATE, onIceCandidate);
     socket.on(SOCKET_EVENTS.PEER_DISCONNECTED, onPeerDisconnected);
+    socket.on(SOCKET_EVENTS.NETWORK_USERS, onNetworkUsers);
+    socket.on(SOCKET_EVENTS.NETWORK_USER_JOINED, onNetworkUserJoined);
+    socket.on(SOCKET_EVENTS.NETWORK_USER_LEFT, onNetworkUserLeft);
 
     if (!socket.connected) {
       socket.connect();
@@ -100,6 +108,9 @@ export const SocketProvider = ({ children }) => {
       socket.off(SOCKET_EVENTS.ANSWER, onAnswer);
       socket.off(SOCKET_EVENTS.ICE_CANDIDATE, onIceCandidate);
       socket.off(SOCKET_EVENTS.PEER_DISCONNECTED, onPeerDisconnected);
+      socket.off(SOCKET_EVENTS.NETWORK_USERS, onNetworkUsers);
+      socket.off(SOCKET_EVENTS.NETWORK_USER_JOINED, onNetworkUserJoined);
+      socket.off(SOCKET_EVENTS.NETWORK_USER_LEFT, onNetworkUserLeft);
       if (peerRef.current) {
         peerRef.current.close();
         peerRef.current = null;
@@ -190,6 +201,22 @@ export const SocketProvider = ({ children }) => {
     setPeerDisconnected(null);
   }
 
+  function onNetworkUsers(users) {
+    setNetworkUsers(users || []);
+  }
+
+  function onNetworkUserJoined(data) {
+    setNetworkUsers(data?.onlineUsers || []);
+  }
+
+  function onNetworkUserLeft(data) {
+    setNetworkUsers(data?.onlineUsers || []);
+  }
+
+  function requestNetworkUsers() {
+    emitNetworkUsers();
+  }
+
   function onConnectionResponse(data) {
     setIsInitiator(true);
     isInitiatorRef.current = true;
@@ -208,7 +235,7 @@ export const SocketProvider = ({ children }) => {
       peerRef.current.init();
       peerRef.current.createOffer();
     } else {
-      console.log(`[WebRTC] Connection rejected by ${data?.from}`);
+      log.log(`Connection rejected by ${data?.from}`);
       setFriendStatus(null);
       setIsInitiator(false);
       isInitiatorRef.current = false;
@@ -238,7 +265,7 @@ export const SocketProvider = ({ children }) => {
   }
 
   function onAnswer(data) {
-    console.log(`[WebRTC] Answer received from ${data.from}`);
+    log.log(`Answer received from ${data.from}`);
     if (peerRef.current) {
       peerRef.current.handleAnswer(data.answer);
     }
@@ -269,7 +296,7 @@ export const SocketProvider = ({ children }) => {
   }
 
   function disconnectFromFriend() {
-    console.log(`[WebRTC] Disconnecting from friend`);
+    log.log(`Disconnecting from friend`);
     if (peerRef.current) {
       peerRef.current.close();
       peerRef.current = null;
@@ -305,6 +332,8 @@ export const SocketProvider = ({ children }) => {
         clearPeerDisconnected,
         connectionPhase,
         connectingTo,
+        networkUsers,
+        requestNetworkUsers,
       }}
     >
       {children}

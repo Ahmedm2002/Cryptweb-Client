@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useSocket } from "../socket/useSocket";
 import { api } from "../services/api.js";
+import createLogger from "../utils/logger/devLogger.js";
+
+const log = createLogger("FileTransfer");
 
 const MAX_SEND_RETRIES = 5;
-const CHUNK_SIZE = 262144;
+const CHUNK_SIZE = 65536;
 const TRANSFER_TIMEOUT_MS = 60000;
 const PROGRESS_THROTTLE_MS = 80;
 
@@ -78,6 +81,7 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
         const msg = JSON.parse(data);
 
         if (msg.type === "metadata") {
+          log.log("Incoming file:", msg.fileName, `${(msg.fileSize / 1024 / 1024).toFixed(1)}MB`, `${msg.totalChunks} chunks`);
           receivedChunksRef.current = [];
           incomingFileRef.current = {
             name: msg.fileName,
@@ -93,6 +97,7 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
           setTransferSpeed(0);
           startTimeRef.current = Date.now();
         } else if (msg.type === "complete") {
+          log.log("Transfer complete signal received");
           clearTransferTimeout();
           setIsTransferring(false);
           setTransferComplete(true);
@@ -102,9 +107,7 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
           const totalReceived = receivedChunksRef.current.length;
 
           if (totalReceived !== totalExpected) {
-            console.error(
-              `Chunk count mismatch: expected ${totalExpected}, got ${totalReceived}`,
-            );
+            log.error(`Chunk count mismatch: expected ${totalExpected}, got ${totalReceived}`);
             setTransferFailed(true);
             setTransferComplete(false);
             return;
@@ -115,9 +118,7 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
           });
 
           if (msg.fileSize && blob.size !== msg.fileSize) {
-            console.error(
-              `File size mismatch: expected ${msg.fileSize}, got ${blob.size}`,
-            );
+            log.error(`File size mismatch: expected ${msg.fileSize}, got ${blob.size}`);
             setTransferFailed(true);
             setTransferComplete(false);
             return;
@@ -151,7 +152,7 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
           incomingFileRef.current &&
           totalChunks !== incomingFileRef.current.totalChunks
         ) {
-          console.error(
+          log.error(
             `Total chunks mismatch in chunk ${chunkIndex}: expected ${incomingFileRef.current.totalChunks}, got ${totalChunks}`,
           );
         }
@@ -179,7 +180,7 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
         }
       }
     } catch (err) {
-      console.error("Error processing data channel message", err);
+      log.error("Error processing data channel message", err);
     }
   }, []);
 
@@ -261,7 +262,7 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
         }
 
         if (offset < file.size && !abortSignal.aborted) {
-          sendChunk();
+          await sendChunk();
         } else if (!abortSignal.aborted) {
           setTransferProgress(100);
 
@@ -276,7 +277,7 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
             );
           } catch {
             if (!abortSignal.aborted) {
-              console.error("Failed to send completion signal");
+              log.error("Failed to send completion signal");
             }
           }
 
@@ -285,6 +286,7 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
           setTransferComplete(true);
           setTransferSpeed(0);
           cleanup();
+          log.log("Send complete:", file.name);
 
           recordTransfer({
             fileName: file.name,
@@ -295,6 +297,8 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
         }
       } catch (err) {
         if (abortSignal.aborted) return;
+
+        log.error("Chunk send error:", err.message);
 
         if (
           err.message?.includes("Data channel") ||
@@ -326,10 +330,12 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
     if (!selectedFile) return;
 
     if (!isDataChannelOpen()) {
+      log.error("Data channel not open, cannot send");
       setTransferFailed(true);
       return;
     }
 
+    log.log("Starting send:", selectedFile.name, `${(selectedFile.size / 1024 / 1024).toFixed(1)}MB`);
     cleanup();
     const controller = new AbortController();
     abortControllerRef.current = controller;

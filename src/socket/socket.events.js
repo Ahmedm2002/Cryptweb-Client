@@ -10,6 +10,9 @@ const SOCKET_EVENTS = {
   OFFER: "offer",
   PEER_DISCONNECTED: "peer:disconnected",
   USERS_CONNECTED: "users:connected",
+  NETWORK_USERS: "network:users",
+  NETWORK_USER_JOINED: "network:user-joined",
+  NETWORK_USER_LEFT: "network:user-left",
 };
 
 export { SOCKET_EVENTS };

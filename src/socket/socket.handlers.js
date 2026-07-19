@@ -58,6 +58,11 @@ function emitUsersConnected(initiator, receiver) {
   socket.emit(SOCKET_EVENTS.USERS_CONNECTED, { initiator, receiver });
 }
 
+function emitNetworkUsers() {
+  if (!socket) return;
+  socket.emit(SOCKET_EVENTS.NETWORK_USERS);
+}
+
 export {
   emitConnectionResponse,
   emitIceCandidate,
@@ -66,4 +71,5 @@ export {
   emitWebRTCOffer,
   emitConnectionRequest,
   emitUsersConnected,
+  emitNetworkUsers,
 };

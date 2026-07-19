@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import EmailInput from "../components/EmailInput";
 import { useSocket } from "../socket/useSocket";
 import FileTransfer from "../components/file-transfer/FileTransfer";
+import NetworkUsers from "../components/dashboard/NetworkUsers";
 import IncomingRequest from "../components/dashboard/ConnectionStatus/IncomingRequest";
 import { LogOut, AlertTriangle, X, WifiOff } from "lucide-react";
 
@@ -111,6 +112,10 @@ function Home() {
             </div>
 
             <EmailInput initialEmail="" />
+
+            <div className="w-full max-w-md mt-2">
+              <NetworkUsers />
+            </div>
           </>
         )}
 

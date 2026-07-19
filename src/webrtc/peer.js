@@ -4,6 +4,9 @@ import {
   emitWebRTCAnswer,
   emitWebRTCOffer,
 } from "../socket/socket.handlers";
+import createLogger from "../utils/logger/devLogger.js";
+
+const log = createLogger("RTCPeer");
 
 const BUFFER_LOW_THRESHOLD = 262144;
 const SEND_TIMEOUT_MS = 30000;
@@ -45,7 +48,7 @@ class RTCPeer {
 
     this._rtcConnection.onconnectionstatechange = () => {
       const state = this._rtcConnection.connectionState;
-      console.log(`Connection state: ${state} (with ${this._remotePeerEmail})`);
+      log.log(`Connection state: ${state} (with ${this._remotePeerEmail})`);
 
       if (state === "connected") {
         this._onConnect?.();
@@ -100,7 +103,7 @@ class RTCPeer {
     this._dataChannel.bufferedAmountLowThreshold = BUFFER_LOW_THRESHOLD;
 
     this._dataChannel.onopen = () => {
-      console.log(`Data channel open with ${this._remotePeerEmail}`);
+      log.log(`Data channel open with ${this._remotePeerEmail}`);
     };
 
     this._dataChannel.onmessage = (event) => {
@@ -108,11 +111,11 @@ class RTCPeer {
     };
 
     this._dataChannel.onerror = (error) => {
-      console.error(`Data channel error:`, error);
+      log.error(`Data channel error:`, error);
     };
 
     this._dataChannel.onclose = () => {
-      console.log(`Data channel closed with ${this._remotePeerEmail}`);
+      log.log(`Data channel closed with ${this._remotePeerEmail}`);
     };
   }
 
@@ -137,6 +140,7 @@ class RTCPeer {
         if (!settled) {
           settled = true;
           cleanup();
+          log.error("Send timeout: buffer not draining");
           reject(new Error("Send timeout: buffer not draining"));
         }
       }, timeoutMs);
