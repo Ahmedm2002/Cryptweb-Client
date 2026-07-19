@@ -1,12 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Send, Download, Clock, FileText, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Send,
+  Download,
+  Clock,
+  FileText,
+  Loader2,
+} from "lucide-react";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 
 function formatFileSize(mb) {
-  if (mb < 0.01) return "< 0.01 MB";
-  return `${mb.toFixed(2)} MB`;
+  const size = Number(mb);
+  if (isNaN(size) || size < 0.01) return "< 0.01 MB";
+  return `${size.toFixed(2)} MB`;
 }
 
 function formatTime(seconds) {
@@ -39,7 +47,7 @@ export default function RecentTransfers() {
   useEffect(() => {
     async function fetchTransfers() {
       try {
-        const res = await api.get("/v1/file-transfers/recent?limit=20");
+        const res = await api.get("/file-transfers/recent?limit=20");
         setTransfers(res.data || []);
       } catch (err) {
         setError(err.message || "Failed to load recent transfers");
