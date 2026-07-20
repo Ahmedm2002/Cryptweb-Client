@@ -1,0 +1,10 @@
+User-agent: *
+Allow: /
+Disallow: /home
+Disallow: /profile
+Disallow: /settings
+Disallow: /transfers
+Disallow: /api/
+Disallow: /auth/
+
+Sitemap: https://cryptweb.galaxydev.pk/sitemap.xml
