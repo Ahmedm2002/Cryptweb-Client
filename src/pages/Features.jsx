@@ -1,4 +1,4 @@
-import { Seo } from "../components/commons/Seo.jsx";
+import { useDocumentTitle } from "../hooks/useDocumentTitle.js";
 import {
   Shield,
   Lightning,
@@ -113,7 +113,7 @@ export const Features = () => {
 
   return (
     <div className="relative min-h-screen bg-[#FAFBFD] flex flex-col text-gray-900">
-      <Seo title="Features" description="Everything Cryptweb offers. Lightning-fast transfers, end-to-end encryption, no file size limits, cross-platform support, and direct device-to-device sharing." />
+      <useDocumentTitle title="Features" />
       <main className="relative z-10 flex-1">
         {/* Header */}
         <section className="bg-section-octagon pt-20 pb-16 sm:pt-28 sm:pb-20 border-b border-gray-100">

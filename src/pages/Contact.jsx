@@ -1,11 +1,11 @@
+import { useDocumentTitle } from "../hooks/useDocumentTitle.js";
 import { Link } from "react-router-dom";
 import { Envelope } from "phosphor-react";
-import { Seo } from "../components/commons/Seo.jsx";
 
 export const Contact = () => {
   return (
     <div className="relative min-h-screen bg-[#FAFBFD] flex flex-col text-gray-900">
-      <Seo title="Contact" description="Get in touch with the Cryptweb team. Have a question, suggestion, or issue? We'd love to hear from you." />
+      <useDocumentTitle title="Contact" />
       <main className="relative z-10 flex-1">
         {/* Header */}
         <section className="bg-section-octagon overflow-hidden pt-20 pb-16 sm:pt-28 sm:pb-20 border-b border-gray-100">

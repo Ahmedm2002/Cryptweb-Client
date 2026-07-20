@@ -1,12 +1,12 @@
+import { useDocumentTitle } from "../hooks/useDocumentTitle.js";
 import { Shield, Lock, Check } from "phosphor-react";
 import { Link } from "react-router-dom";
-import { Seo } from "../components/commons/Seo.jsx";
 import { Button } from "../components/commons/Button.jsx";
 
 export const Security = () => {
   return (
     <div className="relative min-h-screen bg-[#FAFBFD] flex flex-col text-gray-900">
-      <Seo title="Security" description="Your files stay under your control. End-to-end encrypted, direct transfers with no cloud storage. Built so you never have to trust us with your data." />
+      <useDocumentTitle title="Security" />
       <main className="relative z-10 flex-1">
         {/* Header */}
         <section className="bg-section-octagon overflow-hidden pt-20 pb-16 sm:pt-28 sm:pb-20 border-b border-gray-100">

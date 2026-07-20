@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { Seo } from "../components/commons/Seo.jsx";
+import { useDocumentTitle } from "../hooks/useDocumentTitle.js";
 import { Button } from "../components/commons/Button";
 
 export const Login = () => {
@@ -42,7 +42,7 @@ export const Login = () => {
 
   return (
     <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center bg-[#FAFBFD] px-4 py-12">
-      <Seo title="Sign In" description="Sign in to your Cryptweb account to continue sharing files securely." />
+      <useDocumentTitle title="Sign In" />
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">
