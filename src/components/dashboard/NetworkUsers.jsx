@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useSocket } from "../../socket/useSocket";
 import { useAuth } from "../../hooks/useAuth";
-import { Users, RefreshCw } from "lucide-react";
+import { Users, ArrowsClockwise } from "phosphor-react";
 
 export default function NetworkUsers() {
   const { user } = useAuth();
@@ -46,7 +46,7 @@ export default function NetworkUsers() {
           className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
           title="Refresh"
         >
-          <RefreshCw size={14} />
+          <ArrowsClockwise size={14} />
         </button>
       </div>
 

@@ -2,12 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
-  Send,
+  PaperPlaneRight,
   Download,
   Clock,
   FileText,
-  Loader2,
-} from "lucide-react";
+  Spinner,
+} from "phosphor-react";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
 
@@ -75,7 +75,7 @@ export default function RecentTransfers() {
 
       {loading && (
         <div className="flex items-center justify-center py-16">
-          <Loader2 size={24} className="animate-spin text-gray-400" />
+          <Spinner size={24} className="animate-spin text-gray-400" weight="bold" />
         </div>
       )}
 
@@ -107,11 +107,11 @@ export default function RecentTransfers() {
                 <div
                   className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
                     isSent
-                      ? "bg-blue-50 text-blue-600"
-                      : "bg-emerald-50 text-emerald-600"
+                      ? "bg-[#ecfdf5] text-[#059669]"
+                      : "bg-[#fdf8f0] text-[#c78b4a]"
                   }`}
                 >
-                  {isSent ? <Send size={16} /> : <Download size={16} />}
+                  {isSent ? <PaperPlaneRight size={16} weight="bold" /> : <Download size={16} weight="bold" />}
                 </div>
 
                 <div className="flex-1 min-w-0">
@@ -119,8 +119,8 @@ export default function RecentTransfers() {
                     <span
                       className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${
                         isSent
-                          ? "bg-blue-50 text-blue-700"
-                          : "bg-emerald-50 text-emerald-700"
+                          ? "bg-[#ecfdf5] text-[#059669]"
+                          : "bg-[#fdf8f0] text-[#c78b4a]"
                       }`}
                     >
                       {isSent ? "Sent" : "Received"}

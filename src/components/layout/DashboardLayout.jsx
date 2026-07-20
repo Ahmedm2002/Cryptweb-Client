@@ -22,16 +22,16 @@ function DashboardLayout({ children }) {
       </main>
 
       {logoutConfirm && (
-        <div className="fixed inset-0 bg-black/20 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Logout</h3>
-            <p className="text-gray-600 text-sm mb-6">
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-lg max-w-sm w-full p-6">
+            <h3 className="text-base font-semibold text-gray-900 mb-1">Logout</h3>
+            <p className="text-gray-500 text-sm mb-6">
               Are you sure you want to logout?
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setLogoutConfirm(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               >
                 Cancel
               </button>

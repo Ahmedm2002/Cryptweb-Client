@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { UploadCloud, File as FileIcon, X, Shield, Lock } from "lucide-react";
+import { CloudArrowUp, File as FileIcon, X, Shield, Lock } from "phosphor-react";
 
 export const FileTransferDropzone = ({
   selectedFile,
@@ -96,7 +96,7 @@ export const FileTransferDropzone = ({
       ) : (
         <div className="flex flex-col items-center text-center">
           <div className="w-14 h-14 bg-gray-100 rounded-xl flex items-center justify-center mb-4">
-            <UploadCloud className="w-7 h-7 text-gray-500" />
+            <CloudArrowUp className="w-7 h-7 text-gray-500" weight="bold" />
           </div>
           <p className="text-base font-semibold text-gray-800 mb-1">
             Drop a file here
@@ -106,11 +106,11 @@ export const FileTransferDropzone = ({
           </p>
           <div className="flex items-center gap-4 text-xs text-gray-400">
             <div className="flex items-center gap-1.5">
-              <Lock size={12} />
+              <Lock size={12} weight="bold" />
               <span>End-to-end encrypted</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <Shield size={12} />
+              <Shield size={12} weight="bold" />
               <span>Direct transfer</span>
             </div>
           </div>

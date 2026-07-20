@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Clock } from "lucide-react";
+import { Clock, SignOut } from "phosphor-react";
 import { useAuth } from "../../hooks/useAuth";
 
 export const Header = ({ onLogoutConfirm }) => {
@@ -26,7 +26,7 @@ export const Header = ({ onLogoutConfirm }) => {
   return (
     <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 sm:px-6 sticky top-0 z-40">
       <span className="text-lg font-bold tracking-tight text-gray-900">
-        CRYPTWEB
+        Cryptweb
       </span>
 
       <div className="relative" ref={dropdownRef}>
@@ -37,7 +37,7 @@ export const Header = ({ onLogoutConfirm }) => {
           <span className="text-sm font-medium text-gray-700 hidden sm:block">
             {user?.name || "User"}
           </span>
-          <div className="w-8 h-8 rounded-full bg-gray-700 text-white flex items-center justify-center font-semibold text-xs">
+          <div className="w-8 h-8 rounded-full bg-[#1c1c28] text-white flex items-center justify-center font-semibold text-xs">
             {(user?.name || "U").charAt(0).toUpperCase()}
           </div>
         </button>
@@ -54,7 +54,7 @@ export const Header = ({ onLogoutConfirm }) => {
               <Clock size={16} className="text-gray-400" />
               Recent Transfers
             </button>
-            <div className="border-t border-gray-100 my-1"></div>
+            <div className="border-t border-gray-100 my-1" />
             <button
               onClick={() => {
                 setDropdownOpen(false);
@@ -62,7 +62,7 @@ export const Header = ({ onLogoutConfirm }) => {
               }}
               className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
             >
-              <LogOut size={16} className="text-gray-400" />
+              <SignOut size={16} className="text-gray-400" />
               Logout
             </button>
           </div>

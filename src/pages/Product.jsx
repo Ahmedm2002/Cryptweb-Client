@@ -2,140 +2,103 @@ import { Link } from "react-router-dom";
 import { Button } from "../components/commons/Button.jsx";
 import {
   Shield,
-  Zap,
+  Lightning,
   Lock,
-  Share2,
+  Globe,
+  HardDrives,
   ArrowRight,
-  UploadCloud,
-  Users,
-} from "lucide-react";
+  ArrowDown,
+  Check,
+  Upload,
+  LinkSimple,
+  Download,
+} from "phosphor-react";
 
 export const Product = () => {
   return (
-    <div className="relative min-h-screen bg-[#FAFBFD] flex flex-col text-gray-900">
-      <div className="absolute inset-0 z-0 bg-octagon-grid pointer-events-none" />
+    <div className="relative min-h-screen bg-[#FAFBFD] flex flex-col text-gray-900 font-sans">
       <main className="relative z-10 flex-1">
-        <section
-          id="hero"
-          className="overflow-hidden pt-24 pb-32 sm:pt-32 sm:pb-40 border-b border-gray-100"
-        >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-8">
-              <div className="max-w-3xl lg:w-1/2">
-                <h1 className="text-4xl lg:text-5xl font-bold tracking-tight text-gray-900 mb-6 leading-tight">
-                  Secure Direct File Sharing, <br />
-                  <span className="text-[#6c5ce7]">Zero Compromise.</span>
-                </h1>
-                <p className="text-lg sm:text-xl text-gray-600 mb-8 leading-relaxed font-medium">
-                  Transfer files of any size directly between devices. No
-                  central servers, no arbitrary limits, and complete end-to-end
-                  encryption.
-                </p>
-                <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 mt-12">
-                  <Link to="/signup" className="w-full sm:w-auto">
-                    <Button
-                      variant="primary"
-                      className="px-8 py-4 text-lg w-full flex items-center justify-center gap-2 group shadow-md hover:shadow-lg rounded-xl"
-                    >
-                      Start Sharing Free{" "}
-                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </Button>
-                  </Link>
-                  <Link to="/login" className="w-full sm:w-auto">
-                    <Button
-                      variant="secondary"
-                      className="px-8 py-4 text-lg w-full rounded-xl"
-                    >
-                      Login to Dashboard
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-              <div className="w-full lg:w-1/2 flex justify-center lg:justify-end">
-                <div className="relative w-full max-w-lg lg:max-w-xl h-[400px] flex items-center justify-center">
-                  <div className="absolute inset-0 bg-gradient-to-tr from-#e8dff5/50 to-transparent rounded-[3rem] -z-10 transform rotate-3"></div>
-                  <div className="absolute inset-0 bg-white/40 backdrop-blur-3xl rounded-[3rem] border border-white/60 shadow-2xl -z-10"></div>
-
-                  <div className="w-full flex items-center justify-between px-6 sm:px-12 relative z-10">
-                    <div className="w-28 h-36 bg-white border border-gray-100 shadow-lg rounded-2xl flex flex-col items-center justify-center gap-3 relative transform hover:-translate-y-2 transition-transform duration-300">
-                      <UploadCloud className="text-gray-400" size={32} />
-                      <div className="h-2 w-12 bg-gray-200 rounded-full"></div>
-                      <div className="absolute -bottom-3 -right-3 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
-                        <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                      </div>
-                    </div>
-
-                    <div className="flex-1 relative mx-4">
-                      <div className="h-1.5 bg-#e8dff5 w-full rounded-full overflow-hidden">
-                        <div className="h-full bg-#6c5ce7 w-1/2 animate-pulse rounded-full"></div>
-                      </div>
-                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-white border border-#e8dff5 shadow-xl rounded-full flex items-center justify-center z-20">
-                        <Lock className="text-#6c5ce7" size={24} />
-                      </div>
-                    </div>
-
-                    <div className="w-28 h-36 bg-white border border-gray-100 shadow-lg rounded-2xl flex flex-col items-center justify-center gap-3 relative transform hover:-translate-y-2 transition-transform duration-300">
-                      <Users className="text-gray-400" size={32} />
-                      <div className="h-2 w-12 bg-gray-200 rounded-full"></div>
-                    </div>
-                  </div>
-                </div>
+        {/* Hero */}
+        <section className="bg-section-octagon min-h-[calc(100vh-56px)] flex items-center justify-center border-b border-gray-100">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl mx-auto text-center">
+              <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-gray-900 leading-[1.1] mb-5">
+                Share files directly
+                <br />
+                <span className="text-[#059669]">without the cloud.</span>
+              </h1>
+              <p className="text-lg text-gray-500 leading-relaxed mb-8 max-w-md mx-auto">
+                Send files from your device straight to the recipient's. No
+                uploads, no storage, no middlemen.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                <Link to="/signup" className="sm:w-auto w-full">
+                  <Button
+                    variant="primary"
+                    className="px-6 py-2.5 text-sm gap-2 group w-full inline-flex items-center justify-center whitespace-nowrap"
+                  >
+                    Start Sharing
+                    <ArrowRight
+                      className="w-4 h-4 shrink-0 group-hover:translate-x-0.5 transition-transform"
+                      weight="bold"
+                    />
+                  </Button>
+                </Link>
+                <Link to="/features">
+                  <Button variant="secondary" className="px-6 py-2.5 text-sm">
+                    Learn More
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>
         </section>
 
-        <section
-          id="features"
-          className="py-24 bg-gray-50 border-b border-gray-100 relative"
-        >
-          <div className="absolute inset-0  bg-[size:24px_24px]"></div>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="mb-16 max-w-3xl">
-              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-                Everything you need. Nothing you don't.
-              </h2>
-              <p className="text-lg text-gray-600 font-medium">
-                Built for speed, security, and simplicity. Cryptweb is the
-                ultimate tool for transferring sensitive data across the wire.
+        {/* How It Works */}
+        <section className="bg-section-white py-20 sm:py-24 border-b border-gray-100">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl mb-12">
+              <p className="text-xs font-semibold text-[#059669] uppercase tracking-wider mb-2">
+                How it works
               </p>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">
+                Three steps. That's it.
+              </h2>
             </div>
 
-            <div className="flex flex-wrap justify-center gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {[
                 {
-                  icon: <Shield size={28} />,
-                  title: "End-to-End Encryption",
-                  desc: "Every byte transferred is encrypted using industry-leading protocols. Keys never touch our servers.",
+                  step: "01",
+                  icon: <LinkSimple size={20} />,
+                  title: "Connect with the recipient",
+                  desc: "Share a secure connection link or enter their email.",
                 },
                 {
-                  icon: <Zap size={28} />,
-                  title: "Lightning Fast",
-                  desc: "Peer-to-peer transfers mean data takes the shortest path between you and the recipient.",
+                  step: "02",
+                  icon: <Upload size={20} weight="bold" />,
+                  title: "Choose your files",
+                  desc: "Select the files you want to send from your device.",
                 },
                 {
-                  icon: <Lock size={28} />,
-                  title: "Complete Privacy",
-                  desc: "We don't store your files, view your content, or log your transfers. It's direct node-to-node transfer.",
+                  step: "03",
+                  icon: <Download size={20} weight="bold" />,
+                  title: "Files are transferred",
+                  desc: "The recipient receives files directly from your device. Done.",
                 },
-                {
-                  icon: <Share2 size={28} />,
-                  title: "No Size Limits",
-                  desc: "Whether it's a 10MB document or a 10GB video directory, send it without restrictions.",
-                },
-              ].map((feature, i) => (
-                <div
-                  key={i}
-                  className="w-full md:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.333rem)] bg-white p-8 rounded-3xl shadow-sm hover:shadow-md border border-gray-200 transition-all duration-300"
-                >
-                  <div className="w-14 h-14 bg-[#f5f0fb] text-[#6c5ce7] rounded-2xl flex items-center justify-center mb-6">
-                    {feature.icon}
+              ].map((item) => (
+                <div key={item.step} className="relative">
+                  <div className="text-[11px] font-bold text-gray-200 mb-3">
+                    {item.step}
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-3">
-                    {feature.title}
+                  <div className="w-10 h-10 rounded-lg bg-[#ecfdf5] text-[#059669] flex items-center justify-center mb-3">
+                    {item.icon}
+                  </div>
+                  <h3 className="text-base font-semibold text-gray-900 mb-1.5">
+                    {item.title}
                   </h3>
-                  <p className="text-gray-600 leading-relaxed font-medium">
-                    {feature.desc}
+                  <p className="text-sm text-gray-500 leading-relaxed">
+                    {item.desc}
                   </p>
                 </div>
               ))}
@@ -143,150 +106,237 @@ export const Product = () => {
           </div>
         </section>
 
-        <section id="how-it-works" className="py-24 border-b border-gray-100">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col lg:flex-row gap-16">
-              <div className="w-full lg:w-1/2 space-y-10">
-                <h2 className="text-3xl sm:text-4xl font-bold tracking-tight">
-                  How simple is it?
-                </h2>
-                <div className="space-y-10">
+        {/* Comparison */}
+        <section className="bg-section-octagon py-20 sm:py-24 border-b border-gray-100">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl mb-12">
+              <p className="text-xs font-semibold text-[#059669] uppercase tracking-wider mb-2">
+                Why different
+              </p>
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">
+                Skip the cloud entirely.
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
+              <div className="rounded-xl border border-gray-200 p-6 bg-white">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">
+                  Traditional cloud upload
+                </p>
+                <div className="space-y-3">
                   {[
-                    {
-                      title: "Create Account",
-                      desc: "Sign up to start sharing files.",
-                    },
-                    {
-                      title: "Connect",
-                      desc: "Link with your friend using email.",
-                    },
-                    {
-                      title: "Share Files",
-                      desc: "Select and send files directly.",
-                    },
-                    {
-                      title: "Stay Online",
-                      desc: "Keep the tab open for transfer.",
-                    },
-                  ].map((item, index) => (
-                    <div key={index} className="flex gap-6">
-                      <div className="flex-shrink-0 w-12 h-12 rounded-full bg-#e8dff5 text-#6c5ce7 flex items-center justify-center font-bold text-xl">
-                        {index + 1}
-                      </div>
-                      <div>
-                        <h4 className="text-xl font-bold text-gray-900 mb-2">
-                          {item.title}
-                        </h4>
-                        <p className="text-gray-600 font-medium">{item.desc}</p>
-                      </div>
+                    "Upload to server",
+                    "Wait for processing",
+                    "Stored on someone else's computer",
+                    "Recipient downloads",
+                    "You delete it later",
+                  ].map((step, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 text-sm text-gray-500"
+                    >
+                      <ArrowDown size={14} className="text-gray-300 shrink-0" />
+                      {step}
                     </div>
                   ))}
                 </div>
               </div>
-              <div className="w-full lg:w-1/2 bg-#f5f0fb/50 rounded-3xl aspect-square md:aspect-video lg:aspect-square flex flex-col items-center justify-center border border-#e8dff5 shadow-inner p-8 text-center">
-                <div className="w-24 h-24 bg-white shadow-xl rounded-full flex items-center justify-center text-#6c5ce7 mb-6 border border-gray-50">
-                  <Shield size={40} />
-                </div>
-                <div className="text-#6c5ce7 font-bold tracking-widest uppercase text-sm">
-                  Secure Subsystem Mapping
+
+              <div className="rounded-xl border-2 border-[#059669]/20 bg-[#ecfdf5]/30 p-6">
+                <p className="text-xs font-semibold text-[#059669] uppercase tracking-wider mb-4">
+                  Direct secure transfer
+                </p>
+                <div className="space-y-3">
+                  {[
+                    "Select your files",
+                    "Connect with recipient",
+                    "Files transfer directly",
+                    "Done",
+                  ].map((step, i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 text-sm text-gray-700 font-medium"
+                    >
+                      <Check size={14} className="text-[#059669] shrink-0" />
+                      {step}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section
-          id="privacy"
-          className="py-24 bg-[#1c1c28] text-white border-t-[6px] border-[#c78b4a]"
-        >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl mb-16">
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
-                Unmatched Privacy.
+        {/* Security Highlight */}
+        <section className="bg-section-octagon py-20 sm:py-24 border-b border-gray-100">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl mx-auto text-center mb-12">
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-4">
+                Your files stay under your control.
               </h2>
-              <p className="text-lg text-gray-400 leading-relaxed font-medium">
-                Unlike traditional cloud storage, your files are never retained
-                in a centralized server. Cryptweb utilizes WebRTC data channels
-                to form a localized sub-network directly between devices.
+              <p className="text-gray-500 leading-relaxed">
+                We built Cryptweb so you never have to trust us with your data.
+                Your files are encrypted, transferred directly, and never
+                stored.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 text-left">
-              <div className="bg-white/5 p-10 rounded-3xl border border-white/10 hover:bg-white/10 transition-colors">
-                <h3 className="text-2xl font-bold mb-4 text-white">
-                  Zero-Knowledge Fabric
-                </h3>
-                <p className="text-gray-400 leading-relaxed font-medium">
-                  By enforcing strict AES-256-GCM encryption on the client-side
-                  prior to transit, not even our signaling servers can decrypt
-                  your handshake metadata.
-                </p>
-              </div>
-              <div className="bg-white/5 p-10 rounded-3xl border border-white/10 hover:bg-white/10 transition-colors">
-                <h3 className="text-2xl font-bold mb-4 text-white">
-                  Maximized Bandwidth
-                </h3>
-                <p className="text-gray-400 leading-relaxed font-medium">
-                  Experience full LAN or WAN speeds un-throttled by intermediary
-                  relays. If you're on the same local network, transfers happen
-                  near-instantaneously.
-                </p>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto">
+              {[
+                {
+                  title: "Encrypted in transit",
+                  desc: "Files are encrypted before they leave your device.",
+                },
+                {
+                  title: "No cloud storage",
+                  desc: "Nothing is saved on our servers after the transfer.",
+                },
+                {
+                  title: "Both must be online",
+                  desc: "Transfers only happen when sender and receiver are connected.",
+                },
+                {
+                  title: "You're in control",
+                  desc: "Cancel anytime. Close the tab, and the transfer stops.",
+                },
+              ].map((item, i) => (
+                <div key={i} className="text-center">
+                  <div className="w-10 h-10 rounded-full bg-[#ecfdf5] text-[#059669] flex items-center justify-center mx-auto mb-3">
+                    <Check size={18} weight="bold" />
+                  </div>
+                  <h4 className="text-sm font-semibold text-gray-900 mb-1">
+                    {item.title}
+                  </h4>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    {item.desc}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         </section>
 
-        <section
-          id="cta"
-          className="py-24 bg-[#f5f0fb] border-b border-[#e8dff5]"
-        >
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl">
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight text-gray-900 mb-4">
-                Ready to take back control?
-              </h2>
-              <p className="text-lg sm:text-xl text-gray-600 mb-8 font-medium">
-                Join thousands of users transferring files securely every day.
+        {/* Benefits */}
+        <section className="bg-section-white py-20 sm:py-24 border-b border-gray-100">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-2xl mb-12">
+              <p className="text-xs font-semibold text-[#059669] uppercase tracking-wider mb-2">
+                Benefits
               </p>
-              <Link to="/signup">
-                <Button
-                  variant="primary"
-                  className="px-10 py-5 text-xl font-bold rounded-full shadow-md hover:shadow-lg inline-flex items-center gap-2 group"
+              <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">
+                Everything you need for secure file sharing.
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {[
+                {
+                  icon: <Lightning size={20} weight="bold" />,
+                  desc: "Lightning-fast transfers with optimized peer-to-peer technology.",
+                },
+                {
+                  icon: <Lock size={20} weight="bold" />,
+                  desc: "End-to-end encryption from sender to receiver.",
+                },
+                {
+                  icon: <HardDrives size={20} weight="bold" />,
+                  desc: "No file size limits — share files of any size.",
+                },
+                {
+                  icon: <Globe size={20} />,
+                  desc: "Cross-platform support for Windows, macOS, Linux, Android, and iOS.",
+                },
+                {
+                  icon: <Upload size={20} weight="bold" />,
+                  desc: "Direct device-to-device transfers, no central servers.",
+                },
+                {
+                  icon: <Shield size={20} weight="bold" />,
+                  desc: "Reliable transfers with integrity verification and recovery.",
+                },
+              ].map((benefit, i) => (
+                <div
+                  key={i}
+                  className="group bg-white rounded-2xl border border-gray-200 p-4 hover:-translate-y-1 hover:shadow-md transition-all duration-200 flex items-start gap-3"
                 >
-                  Create Free Account{" "}
-                  <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                  <div className="w-9 h-9 rounded-lg bg-[#ecfdf5] text-[#059669] flex items-center justify-center shrink-0 mt-0.5">
+                    {benefit.icon}
+                  </div>
+                  <p className="text-xs text-gray-500 leading-relaxed pt-1.5">
+                    {benefit.desc}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            <div className="text-center mt-10">
+              <Link to="/features">
+                <Button
+                  variant="secondary"
+                  className="px-5 py-2 text-sm gap-1.5 group inline-flex items-center justify-center whitespace-nowrap"
+                >
+                  View all features
+                  <ArrowRight
+                    className="w-3.5 h-3.5 shrink-0 group-hover:translate-x-0.5 transition-transform"
+                    weight="bold"
+                  />
                 </Button>
               </Link>
             </div>
           </div>
         </section>
-      </main>
 
-      <footer id="footer" className="bg-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="text-2xl font-black tracking-tight text-gray-900">
-            CRYPTWEB<span className="text-[#6c5ce7]">.</span>
-          </div>
-          <p className="text-gray-500 text-sm font-medium">
-            © {new Date().getFullYear()} Cryptweb. Secure file sharing. All
-            rights reserved.
-          </p>
-          <div className="flex gap-6">
-            <Link
-              to="#"
-              className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              Privacy Policy
+        {/* CTA */}
+        <section className="bg-section-octagon py-20 sm:py-24 border-b border-gray-100">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-4">
+              Ready to share files securely?
+            </h2>
+            <p className="text-gray-500 mb-8 max-w-md mx-auto">
+              Create a free account and start transferring files directly. No
+              credit card required.
+            </p>
+            <Link to="/signup">
+              <Button
+                variant="primary"
+                className="px-6 py-2.5 text-sm gap-2 group inline-flex items-center justify-center whitespace-nowrap"
+              >
+                Start Sharing
+                <ArrowRight
+                  className="w-4 h-4 shrink-0 group-hover:translate-x-0.5 transition-transform"
+                  weight="bold"
+                />
+              </Button>
             </Link>
-            <Link
-              to="#"
-              className="text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors"
-            >
-              Terms of Service
-            </Link>
           </div>
-        </div>
-      </footer>
+        </section>
+
+        {/* Footer */}
+        <footer className="bg-section-white border-t border-gray-100 py-10">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="text-lg font-bold tracking-tight text-gray-900">
+              Cryptweb
+            </div>
+            <p className="text-sm text-gray-400">
+              &copy; {new Date().getFullYear()} Cryptweb. All rights reserved.
+            </p>
+            <div className="flex gap-5">
+              <Link
+                to="#"
+                className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                Privacy
+              </Link>
+              <Link
+                to="#"
+                className="text-sm text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                Terms
+              </Link>
+            </div>
+          </div>
+        </footer>
+      </main>
     </div>
   );
 };

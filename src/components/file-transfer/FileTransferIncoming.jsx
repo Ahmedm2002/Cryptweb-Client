@@ -1,4 +1,4 @@
-import { Download } from "lucide-react";
+import { Download } from "phosphor-react";
 
 export const FileTransferIncoming = ({ incomingFile, transferComplete, downloadFile }) => {
   if (!incomingFile || !transferComplete) return null;
@@ -17,9 +17,9 @@ export const FileTransferIncoming = ({ incomingFile, transferComplete, downloadF
       </div>
       <button
         onClick={downloadFile}
-        className="px-4 py-2 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-gray-800 transition-colors flex items-center gap-2"
+        className="px-4 py-2 bg-[#1c1c28] text-white rounded-lg text-sm font-medium hover:bg-[#2a2a3a] transition-colors flex items-center gap-2"
       >
-        <Download size={14} /> Download
+        <Download size={14} weight="bold" /> Download
       </button>
     </div>
   );

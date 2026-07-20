@@ -51,7 +51,7 @@ const AppContent = () => {
 
   return (
     <Router>
-      <div className="font-sans antialiased text-gray-900 bg-[#FAFBFD] min-h-screen">
+        <div className="font-sans antialiased text-gray-900 bg-[#FAFBFD] min-h-screen">
         <ConditionalNavbar menuItems={menuItems} />
         <Routes>
           <Route

@@ -11,11 +11,11 @@ export const Button = ({
 
   const variants = {
     primary:
-      "bg-[#1c1c28] text-white hover:bg-[#2a2a3a] focus:ring-[#6c5ce7] shadow-sm hover:shadow-md",
+      "bg-[#1c1c28] text-white hover:bg-[#2a2a3a] focus:ring-[#059669] shadow-sm hover:shadow-md",
     secondary:
       "bg-white text-[#1c1c28] border border-[#e8e3dd] hover:bg-[#faf8f5] hover:border-[#d4cdc4] focus:ring-[#c78b4a]",
     ghost:
-      "text-[#6c5ce7] hover:bg-[#f5f0fb] focus:ring-[#6c5ce7]",
+      "text-[#059669] hover:bg-[#ecfdf5] focus:ring-[#059669]",
   };
 
   return (
