@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { Seo } from "../components/commons/Seo.jsx";
 import { Button } from "../components/commons/Button.jsx";
 import {
   Shield,
@@ -17,6 +18,7 @@ import {
 export const Product = () => {
   return (
     <div className="relative min-h-screen bg-[#FAFBFD] flex flex-col text-gray-900 font-sans">
+      <Seo title="Direct Secure File Transfers" description="Share files directly from your device to the recipient's. No uploads, no storage, no middlemen." />
       <main className="relative z-10 flex-1">
         {/* Hero */}
         <section className="bg-section-octagon pt-20 pb-16 sm:pt-28 sm:pb-20 border-b border-gray-100">

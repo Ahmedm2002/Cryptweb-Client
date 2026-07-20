@@ -1,11 +1,13 @@
 import { Link } from "react-router-dom";
 import { Button } from "../components/commons/Button.jsx";
 import { ArrowLeft } from "phosphor-react";
+import { Seo } from "../components/commons/Seo.jsx";
 
 export const NotFound = () => {
   return (
     <div className="relative h-[calc(100dvh-4rem)] bg-[#FAFBFD] flex flex-col overflow-hidden">
       <div className="absolute inset-0 z-0 bg-octagon-grid pointer-events-none" />
+      <Seo title="Page Not Found" description="The page you are looking for does not exist." />
       <main className="flex-1 flex items-center justify-center px-3 py-4">
         <div className="w-full max-w-sm mx-auto text-center">
           <div className="relative inline-block mb-2 sm:mb-3">
