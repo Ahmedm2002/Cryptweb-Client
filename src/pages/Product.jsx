@@ -19,7 +19,7 @@ export const Product = () => {
     <div className="relative min-h-screen bg-[#FAFBFD] flex flex-col text-gray-900 font-sans">
       <main className="relative z-10 flex-1">
         {/* Hero */}
-        <section className="bg-section-octagon min-h-[calc(100vh-56px)] flex items-center justify-center border-b border-gray-100">
+        <section className="bg-section-octagon pt-20 pb-16 sm:pt-28 sm:pb-20 border-b border-gray-100">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-2xl mx-auto text-center">
               <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-gray-900 leading-[1.1] mb-5">
@@ -168,7 +168,7 @@ export const Product = () => {
         </section>
 
         {/* Security Highlight */}
-        <section className="bg-section-octagon py-20 sm:py-24 border-b border-gray-100">
+        <section className="bg-section-white py-20 sm:py-24 border-b border-gray-100">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-2xl mx-auto text-center mb-12">
               <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-4">
@@ -201,7 +201,7 @@ export const Product = () => {
                 },
               ].map((item, i) => (
                 <div key={i} className="text-center">
-                  <div className="w-10 h-10 rounded-full bg-[#ecfdf5] text-[#059669] flex items-center justify-center mx-auto mb-3">
+                  <div className="w-10 h-10 rounded-full bg-[#fdf8f0] text-[#c78b4a] flex items-center justify-center mx-auto mb-3">
                     <Check size={18} weight="bold" />
                   </div>
                   <h4 className="text-sm font-semibold text-gray-900 mb-1">
