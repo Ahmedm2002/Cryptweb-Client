@@ -177,6 +177,16 @@ export const SocketProvider = ({ children }) => {
     }
   }
 
+  function onConnectionStats(stats) {
+    log.log(
+      "ICE candidate pair:",
+      stats.candidateType,
+      "| relayed:",
+      stats.relayed,
+    );
+    log.log("SCTP maxMessageSize:", stats.maxMessageSize);
+  }
+
   function onPeerError(msg) {
     setConnectionError(msg);
     setIsConnectedWithFriend(false);
@@ -230,6 +240,7 @@ export const SocketProvider = ({ children }) => {
         data.from,
         onPeerConnected,
         onPeerError,
+        onConnectionStats,
       );
       peerRef.current._onDataChannelMessage = dataChannelCallbackRef.current;
       peerRef.current.init();
@@ -258,6 +269,7 @@ export const SocketProvider = ({ children }) => {
       data.from,
       onPeerConnected,
       onPeerError,
+      onConnectionStats,
     );
     peerRef.current._onDataChannelMessage = dataChannelCallbackRef.current;
     peerRef.current.init();
@@ -286,6 +298,14 @@ export const SocketProvider = ({ children }) => {
 
   function isDataChannelOpen() {
     return peerRef.current?.isDataChannelOpen() ?? false;
+  }
+
+  function getDataChannel() {
+    return peerRef.current?.getDataChannel() ?? null;
+  }
+
+  function getMaxMessageSize() {
+    return peerRef.current?.getMaxMessageSize() ?? 65536;
   }
 
   function sendDataViaWebRTC(data, options) {
@@ -324,6 +344,8 @@ export const SocketProvider = ({ children }) => {
         subscribeToDataChannel,
         sendDataViaWebRTC,
         isDataChannelOpen,
+        getDataChannel,
+        getMaxMessageSize,
         connectionError,
         setConnectionError,
         disconnectFromFriend,

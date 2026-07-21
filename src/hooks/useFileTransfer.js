@@ -5,14 +5,20 @@ import createLogger from "../utils/logger/devLogger.js";
 
 const log = createLogger("FileTransfer");
 
-const MAX_SEND_RETRIES = 5;
-const CHUNK_SIZE = 65536;
+const DEFAULT_CHUNK_SIZE = 65536;
+const MAX_CHUNK_SIZE = 262144;
+const BUFFER_LOW_THRESHOLD = 262144;
 const TRANSFER_TIMEOUT_MS = 60000;
 const PROGRESS_THROTTLE_MS = 80;
 
 function useFileTransfer(friendEmail, user, peerDisconnected) {
-  const { subscribeToDataChannel, sendDataViaWebRTC, isDataChannelOpen } =
-    useSocket();
+  const {
+    subscribeToDataChannel,
+    sendDataViaWebRTC,
+    isDataChannelOpen,
+    getDataChannel,
+    getMaxMessageSize,
+  } = useSocket();
 
   const [selectedFile, setSelectedFile] = useState(null);
   const [incomingFile, setIncomingFile] = useState(null);
@@ -135,6 +141,14 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
               transferType: "receive",
             });
           }
+
+          const elapsed =
+            (Date.now() - startTimeRef.current) / 1000;
+          const throughput =
+            blob.size / elapsed / 1024 / 1024;
+          log.log(
+            `Transfer timing: ${(blob.size / 1024 / 1024).toFixed(2)}MB in ${elapsed.toFixed(1)}s @ ${throughput.toFixed(2)} MB/s`,
+          );
         }
       } else if (data instanceof ArrayBuffer) {
         if (data.byteLength < 9) return;
@@ -204,66 +218,97 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
     };
   }, []);
 
-  const sendNextChunk = async (file, totalChunks, controller) => {
+  const pumpChunks = async (file, totalChunks, chunkSize, controller) => {
     const abortSignal = controller.signal;
-    let chunkId = 0;
-    let offset = 0;
+    const dc = getDataChannel();
+
+    if (!dc || dc.readyState !== "open") {
+      setTransferFailed(true);
+      setIsTransferring(false);
+      cleanup();
+      return;
+    }
 
     if (!headerBufferRef.current) {
       headerBufferRef.current = new ArrayBuffer(9);
     }
-    const headerBuffer = headerBufferRef.current;
-    const headerView = new DataView(headerBuffer);
+    const headerView = new DataView(headerBufferRef.current);
 
-    const sendChunk = async () => {
-      if (abortSignal.aborted) return;
-      if (!isDataChannelOpen()) {
-        setTransferFailed(true);
-        setIsTransferring(false);
-        setTransferSpeed(0);
-        cleanup();
-        return;
+    let chunkId = 0;
+    let offset = 0;
+    let pumping = false;
+
+    dc.bufferedAmountLowThreshold = BUFFER_LOW_THRESHOLD;
+
+    const onDrain = () => {
+      if (!pumping && !abortSignal.aborted) {
+        pump();
       }
+    };
+    dc.addEventListener("bufferedamountlow", onDrain);
 
-      const slice = file.slice(offset, offset + CHUNK_SIZE);
-      const arrayBuffer = await slice.arrayBuffer();
-
-      headerView.setUint8(0, 0x01);
-      headerView.setUint32(1, chunkId, false);
-      headerView.setUint32(5, totalChunks, false);
-
-      const combined = new Uint8Array(9 + arrayBuffer.byteLength);
-      combined.set(new Uint8Array(headerBuffer), 0);
-      combined.set(new Uint8Array(arrayBuffer), 9);
+    const pump = async () => {
+      if (pumping || abortSignal.aborted) return;
+      pumping = true;
 
       try {
-        await sendDataViaWebRTC(combined.buffer, {
-          signal: abortSignal,
-          timeoutMs: TRANSFER_TIMEOUT_MS,
-        });
+        while (
+          offset < file.size &&
+          dc.bufferedAmount <= BUFFER_LOW_THRESHOLD
+        ) {
+          if (abortSignal.aborted) break;
 
-        sendRetryCount.current = 0;
-        chunkId++;
-        offset += CHUNK_SIZE;
-        resetTransferTimeout();
+          const slice = file.slice(offset, offset + chunkSize);
+          const arrayBuffer = await slice.arrayBuffer();
 
-        const now = Date.now();
-        if (now - lastRenderTimeRef.current >= PROGRESS_THROTTLE_MS) {
-          lastRenderTimeRef.current = now;
-          const progress = Math.round((chunkId / totalChunks) * 100);
-          setTransferProgress(progress);
+          headerView.setUint8(0, 0x01);
+          headerView.setUint32(1, chunkId, false);
+          headerView.setUint32(5, totalChunks, false);
 
-          if (startTimeRef.current) {
-            const elapsed = (now - startTimeRef.current) / 1000;
-            if (elapsed > 0.3) {
-              setTransferSpeed(offset / elapsed);
+          const combined = new Uint8Array(9 + arrayBuffer.byteLength);
+          combined.set(new Uint8Array(headerBufferRef.current), 0);
+          combined.set(new Uint8Array(arrayBuffer), 9);
+
+          try {
+            dc.send(combined.buffer);
+          } catch (sendErr) {
+            if (!abortSignal.aborted) {
+              log.error("Pump send error:", sendErr.message);
+              setTransferFailed(true);
+              setIsTransferring(false);
+              setTransferSpeed(0);
+            }
+            dc.removeEventListener("bufferedamountlow", onDrain);
+            clearTransferTimeout();
+            cleanup();
+            return;
+          }
+
+          chunkId++;
+          offset += chunkSize;
+          resetTransferTimeout();
+
+          const now = Date.now();
+          if (
+            now - lastRenderTimeRef.current >= PROGRESS_THROTTLE_MS
+          ) {
+            lastRenderTimeRef.current = now;
+            const progress = Math.round(
+              (chunkId / totalChunks) * 100,
+            );
+            setTransferProgress(progress);
+
+            if (startTimeRef.current) {
+              const elapsed = (now - startTimeRef.current) / 1000;
+              if (elapsed > 0.3) {
+                setTransferSpeed(offset / elapsed);
+              }
             }
           }
         }
 
-        if (offset < file.size && !abortSignal.aborted) {
-          await sendChunk();
-        } else if (!abortSignal.aborted) {
+        if (offset >= file.size && !abortSignal.aborted) {
+          dc.removeEventListener("bufferedamountlow", onDrain);
           setTransferProgress(100);
 
           try {
@@ -273,7 +318,10 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
                 totalChunks,
                 fileSize: file.size,
               }),
-              { signal: abortSignal, timeoutMs: TRANSFER_TIMEOUT_MS },
+              {
+                signal: abortSignal,
+                timeoutMs: TRANSFER_TIMEOUT_MS,
+              },
             );
           } catch {
             if (!abortSignal.aborted) {
@@ -286,7 +334,15 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
           setTransferComplete(true);
           setTransferSpeed(0);
           cleanup();
-          log.log("Send complete:", file.name);
+
+          const elapsed =
+            (Date.now() - startTimeRef.current) / 1000;
+          const throughput =
+            file.size / elapsed / 1024 / 1024;
+          log.log(`Send complete: ${file.name}`);
+          log.log(
+            `Transfer timing: ${(file.size / 1024 / 1024).toFixed(2)}MB in ${elapsed.toFixed(1)}s @ ${throughput.toFixed(2)} MB/s`,
+          );
 
           recordTransfer({
             fileName: file.name,
@@ -295,35 +351,12 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
             transferType: "send",
           });
         }
-      } catch (err) {
-        if (abortSignal.aborted) return;
-
-        log.error("Chunk send error:", err.message);
-
-        if (
-          err.message?.includes("Data channel") ||
-          err.message?.includes("Transfer aborted")
-        ) {
-          setTransferFailed(true);
-          setIsTransferring(false);
-          setTransferSpeed(0);
-          cleanup();
-          return;
-        }
-
-        sendRetryCount.current++;
-        if (sendRetryCount.current >= MAX_SEND_RETRIES || abortSignal.aborted) {
-          setTransferFailed(true);
-          setIsTransferring(false);
-          setTransferSpeed(0);
-          cleanup();
-          return;
-        }
-        setTimeout(sendChunk, 200 * sendRetryCount.current);
+      } finally {
+        pumping = false;
       }
     };
 
-    await sendChunk();
+    await pump();
   };
 
   const sendSecuredFile = async () => {
@@ -335,12 +368,15 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
       return;
     }
 
-    log.log("Starting send:", selectedFile.name, `${(selectedFile.size / 1024 / 1024).toFixed(1)}MB`);
+    log.log(
+      "Starting send:",
+      selectedFile.name,
+      `${(selectedFile.size / 1024 / 1024).toFixed(1)}MB`,
+    );
     cleanup();
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    sendRetryCount.current = 0;
     setIsTransferring(true);
     setTransferProgress(0);
     setTransferComplete(false);
@@ -349,7 +385,12 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
     setTransferSpeed(0);
     resetTransferTimeout();
 
-    const totalChunks = Math.ceil(selectedFile.size / CHUNK_SIZE);
+    const maxMsgSize = getMaxMessageSize?.() || DEFAULT_CHUNK_SIZE;
+    const chunkSize =
+      maxMsgSize > 9
+        ? Math.min(maxMsgSize - 9, MAX_CHUNK_SIZE)
+        : DEFAULT_CHUNK_SIZE;
+    const totalChunks = Math.ceil(selectedFile.size / chunkSize);
 
     try {
       await sendDataViaWebRTC(
@@ -372,7 +413,7 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
       return;
     }
 
-    await sendNextChunk(selectedFile, totalChunks, controller);
+    await pumpChunks(selectedFile, totalChunks, chunkSize, controller);
   };
 
   const cancelTransfer = useCallback(() => {

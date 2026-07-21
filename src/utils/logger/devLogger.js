@@ -1,5 +1,7 @@
 const isDev = import.meta.env.DEV;
 
+console.log(`Dev env: ${isDev}`);
+
 function createLogger(namespace) {
   const prefix = `[${namespace}]`;
 

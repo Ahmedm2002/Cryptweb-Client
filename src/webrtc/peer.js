@@ -20,6 +20,7 @@ class RTCPeer {
     remotePeerEmail,
     onConnect,
     onConnectionFailure,
+    onConnectionStats,
   ) {
     this._socket = socket;
     this._retryCount = 0;
@@ -27,10 +28,12 @@ class RTCPeer {
     this._remotePeerEmail = remotePeerEmail;
     this._onConnect = onConnect;
     this._onConnectionFailure = onConnectionFailure;
+    this._onConnectionStats = onConnectionStats;
     this._onDataChannelMessage = null;
     this._isInitiator = false;
     this._rtcConnection = null;
     this._dataChannel = null;
+    this._maxMessageSize = 65536;
   }
 
   init() {
@@ -51,6 +54,7 @@ class RTCPeer {
       log.log(`Connection state: ${state} (with ${this._remotePeerEmail})`);
 
       if (state === "connected") {
+        this.diagnoseConnection();
         this._onConnect?.();
       } else if (state === "failed") {
         this.handleConnectionFailure();
@@ -61,6 +65,55 @@ class RTCPeer {
       this._dataChannel = event.channel;
       this.setupDataChannel();
     };
+  }
+
+  async diagnoseConnection() {
+    try {
+      const stats = await this._rtcConnection.getStats();
+      let transport = null;
+      stats.forEach((report) => {
+        if (report.type === "transport") transport = report;
+      });
+
+      let localType = "unknown";
+      let remoteType = "unknown";
+
+      if (transport?.selectedCandidatePairId) {
+        const pair = stats.get(transport.selectedCandidatePairId);
+        if (pair) {
+          const local = stats.get(pair.localCandidateId);
+          const remote = stats.get(pair.remoteCandidateId);
+          localType = local?.candidateType || "unknown";
+          remoteType = remote?.candidateType || "unknown";
+        }
+      }
+
+      this._maxMessageSize =
+        this._rtcConnection?.sctp?.maxMessageSize || 65536;
+      const relayed =
+        localType === "relay" || remoteType === "relay";
+
+      log.log(
+        `Connection using: ${localType}↔${remoteType}${relayed ? " ⚠️ RELAYING THROUGH TURN" : ""}`,
+      );
+      log.log(`SCTP maxMessageSize: ${this._maxMessageSize}`);
+
+      if (relayed) {
+        log.warn(
+          "⚠️  ICE candidate pair is RELAY (TURN). On same-LAN, this explains slow transfers.",
+        );
+      }
+
+      this._onConnectionStats?.({
+        localCandidateType: localType,
+        remoteCandidateType: remoteType,
+        candidateType: `${localType}↔${remoteType}`,
+        relayed,
+        maxMessageSize: this._maxMessageSize,
+      });
+    } catch (err) {
+      log.error("Failed to get connection stats:", err);
+    }
   }
 
   async handleConnectionFailure() {
@@ -121,6 +174,14 @@ class RTCPeer {
 
   isDataChannelOpen() {
     return this._dataChannel?.readyState === "open";
+  }
+
+  getDataChannel() {
+    return this._dataChannel;
+  }
+
+  getMaxMessageSize() {
+    return this._maxMessageSize;
   }
 
   sendData(data, { signal, timeoutMs = SEND_TIMEOUT_MS } = {}) {
