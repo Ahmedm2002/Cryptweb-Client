@@ -11,6 +11,16 @@ const BUFFER_LOW_THRESHOLD = 262144;
 const TRANSFER_TIMEOUT_MS = 60000;
 const PROGRESS_THROTTLE_MS = 80;
 
+function getPreloadThreshold() {
+  const mem = navigator.deviceMemory;
+  if (mem >= 8) return 100 * 1024 * 1024;
+  if (mem >= 4) return 75 * 1024 * 1024;
+  if (mem >= 2) return 50 * 1024 * 1024;
+  if (mem) return 25 * 1024 * 1024;
+  const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+  return isMobile ? 25 * 1024 * 1024 : 75 * 1024 * 1024;
+}
+
 function useFileTransfer(friendEmail, user, peerDisconnected) {
   const {
     subscribeToDataChannel,
@@ -37,7 +47,6 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
   const timeoutRef = useRef(null);
   const lastProgressTimeRef = useRef(null);
   const lastRenderTimeRef = useRef(0);
-  const headerBufferRef = useRef(null);
 
   const clearTransferTimeout = () => {
     if (timeoutRef.current) {
@@ -160,7 +169,10 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
 
         const chunkIndex = view.getUint32(1, false);
         const totalChunks = view.getUint32(5, false);
-        const raw_data = data.slice(9);
+        // STEP 5 — Zero-copy: view into the incoming ArrayBuffer instead of slicing a new one.
+        // Known follow-up: for very large transfers, switch from Blob to ReadableStream
+        // to avoid buffering all chunks in memory simultaneously.
+        const raw_data = new Uint8Array(data, 9);
 
         if (
           incomingFileRef.current &&
@@ -218,7 +230,7 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
     };
   }, []);
 
-  const pumpChunks = async (file, totalChunks, chunkSize, controller) => {
+  const pumpChunks = async (file, totalChunks, chunkSize, controller, fileBuffer) => {
     const abortSignal = controller.signal;
     const dc = getDataChannel();
 
@@ -229,14 +241,17 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
       return;
     }
 
-    if (!headerBufferRef.current) {
-      headerBufferRef.current = new ArrayBuffer(9);
-    }
-    const headerView = new DataView(headerBufferRef.current);
+    // STEP 4 — Pre-allocate a single packet buffer (header 9B + chunkSize) once.
+    // Reused every iteration: dc.send() copies internally, subarray() is zero-copy.
+    const packetView = new Uint8Array(9 + chunkSize);
+    const packetHeader = new DataView(packetView.buffer);
 
     let chunkId = 0;
     let offset = 0;
     let pumping = false;
+    let chunksThisSec = 0;
+    let bytesThisSec = 0;
+    let lastLogTime = Date.now();
 
     dc.bufferedAmountLowThreshold = BUFFER_LOW_THRESHOLD;
 
@@ -247,6 +262,8 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
     };
     dc.addEventListener("bufferedamountlow", onDrain);
 
+    // STEP 6 — Synchronous while loop driven by a single bufferedamountlow listener.
+    // No await inside the preload hot path; fallback path has one await per chunk (disk slice).
     const pump = async () => {
       if (pumping || abortSignal.aborted) return;
       pumping = true;
@@ -258,19 +275,23 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
         ) {
           if (abortSignal.aborted) break;
 
-          const slice = file.slice(offset, offset + chunkSize);
-          const arrayBuffer = await slice.arrayBuffer();
+          let len;
+          if (fileBuffer) {
+            len = Math.min(chunkSize, fileBuffer.byteLength - offset);
+            packetView.set(new Uint8Array(fileBuffer, offset, len), 9);
+          } else {
+            const slice = file.slice(offset, offset + chunkSize);
+            const ab = await slice.arrayBuffer();
+            len = ab.byteLength;
+            packetView.set(new Uint8Array(ab), 9);
+          }
 
-          headerView.setUint8(0, 0x01);
-          headerView.setUint32(1, chunkId, false);
-          headerView.setUint32(5, totalChunks, false);
-
-          const combined = new Uint8Array(9 + arrayBuffer.byteLength);
-          combined.set(new Uint8Array(headerBufferRef.current), 0);
-          combined.set(new Uint8Array(arrayBuffer), 9);
+          packetHeader.setUint8(0, 0x01);
+          packetHeader.setUint32(1, chunkId, false);
+          packetHeader.setUint32(5, totalChunks, false);
 
           try {
-            dc.send(combined.buffer);
+            dc.send(packetView.subarray(0, 9 + len));
           } catch (sendErr) {
             if (!abortSignal.aborted) {
               log.error("Pump send error:", sendErr.message);
@@ -304,6 +325,18 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
                 setTransferSpeed(offset / elapsed);
               }
             }
+          }
+
+          chunksThisSec++;
+          bytesThisSec += 9 + len;
+          if (now - lastLogTime >= 1000) {
+            const secElapsed = (now - lastLogTime) / 1000;
+            log.log(
+              `[PUMP] ${chunksThisSec} chunks/s | ${(bytesThisSec / secElapsed / 1024).toFixed(1)} KB/s | buffer: ${dc.bufferedAmount} bytes`,
+            );
+            chunksThisSec = 0;
+            bytesThisSec = 0;
+            lastLogTime = now;
           }
         }
 
@@ -391,6 +424,7 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
         ? Math.min(maxMsgSize - 9, MAX_CHUNK_SIZE)
         : DEFAULT_CHUNK_SIZE;
     const totalChunks = Math.ceil(selectedFile.size / chunkSize);
+    log.log(`Chunk config: size=${chunkSize}B, total=${totalChunks}, maxMsgSize=${maxMsgSize}`);
 
     try {
       await sendDataViaWebRTC(
@@ -413,7 +447,20 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
       return;
     }
 
-    await pumpChunks(selectedFile, totalChunks, chunkSize, controller);
+    const threshold = getPreloadThreshold();
+    let fileBuffer = null;
+    if (selectedFile.size <= threshold) {
+      log.log(
+        `[PRELOAD] ${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(1)}MB) <= ${(threshold / 1024 / 1024).toFixed(0)}MB threshold — preloading into memory`,
+      );
+      fileBuffer = await selectedFile.arrayBuffer();
+    } else {
+      log.log(
+        `[PRELOAD] ${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(1)}MB) > ${(threshold / 1024 / 1024).toFixed(0)}MB threshold — streaming from disk`,
+      );
+    }
+
+    await pumpChunks(selectedFile, totalChunks, chunkSize, controller, fileBuffer);
   };
 
   const cancelTransfer = useCallback(() => {

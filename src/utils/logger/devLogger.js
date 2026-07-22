@@ -1,4 +1,4 @@
-const isDev = import.meta.env.DEV;
+const isDev = import.meta.env.VITE_DEV;
 
 console.log(`Dev env: ${isDev}`);
 

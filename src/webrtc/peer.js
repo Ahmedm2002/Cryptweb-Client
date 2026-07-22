@@ -1,4 +1,4 @@
-import { ICE_SERVERS } from "./iceServers";
+import { STUN_ONLY, STUN_AND_TURN } from "./iceServers";
 import {
   emitIceCandidate,
   emitWebRTCAnswer,
@@ -34,10 +34,11 @@ class RTCPeer {
     this._rtcConnection = null;
     this._dataChannel = null;
     this._maxMessageSize = 65536;
+    this._turnFallbackTimer = null;
   }
 
   init() {
-    this._rtcConnection = new RTCPeerConnection(ICE_SERVERS);
+    this._rtcConnection = new RTCPeerConnection(STUN_ONLY);
 
     this._rtcConnection.onicecandidate = (event) => {
       if (event.candidate) {
@@ -54,6 +55,7 @@ class RTCPeer {
       log.log(`Connection state: ${state} (with ${this._remotePeerEmail})`);
 
       if (state === "connected") {
+        this._clearTurnFallback();
         this.diagnoseConnection();
         this._onConnect?.();
       } else if (state === "failed") {
@@ -65,6 +67,18 @@ class RTCPeer {
       this._dataChannel = event.channel;
       this.setupDataChannel();
     };
+
+    // STEP 7 — Start with STUN-only; after 5s if still no direct connection, fall back to TURN.
+    this._turnFallbackTimer = setTimeout(() => {
+      if (
+        this._rtcConnection &&
+        this._rtcConnection.connectionState !== "connected"
+      ) {
+        log.warn("[TURN-FALLBACK] No direct connection after 5s — adding TURN servers");
+        this._rtcConnection.setConfiguration(STUN_AND_TURN);
+        this._rtcConnection.restartIce();
+      }
+    }, 5000);
   }
 
   async diagnoseConnection() {
@@ -94,13 +108,13 @@ class RTCPeer {
         localType === "relay" || remoteType === "relay";
 
       log.log(
-        `Connection using: ${localType}↔${remoteType}${relayed ? " ⚠️ RELAYING THROUGH TURN" : ""}`,
+        `[ICE] Connection path: ${localType}↔${remoteType}${relayed ? " — TURN in use" : ""}`,
       );
-      log.log(`SCTP maxMessageSize: ${this._maxMessageSize}`);
+      log.log(`[ICE] SCTP maxMessageSize: ${this._maxMessageSize}`);
 
       if (relayed) {
         log.warn(
-          "⚠️  ICE candidate pair is RELAY (TURN). On same-LAN, this explains slow transfers.",
+          `[ICE] relay↔relay detected — TURN in use. On same-LAN this explains slow transfers.`,
         );
       }
 
@@ -322,6 +336,7 @@ class RTCPeer {
   }
 
   close() {
+    this._clearTurnFallback();
     if (this._dataChannel) {
       try { this._dataChannel.close(); } catch { /* already closed */ }
       this._dataChannel = null;
@@ -329,6 +344,13 @@ class RTCPeer {
     if (this._rtcConnection) {
       try { this._rtcConnection.close(); } catch { /* already closed */ }
       this._rtcConnection = null;
+    }
+  }
+
+  _clearTurnFallback() {
+    if (this._turnFallbackTimer) {
+      clearTimeout(this._turnFallbackTimer);
+      this._turnFallbackTimer = null;
     }
   }
 
