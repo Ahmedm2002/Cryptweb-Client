@@ -106,15 +106,6 @@ export default function RecentTransfers() {
               >
                 <PaperPlaneTilt size={16} weight="bold" />
                 Sent
-                <span
-                  className={`text-xs px-1.5 py-0.5 rounded-full ${
-                    activeTab === "sent"
-                      ? "bg-gray-900 text-white"
-                      : "bg-gray-200 text-gray-600"
-                  }`}
-                >
-                  {sent.length}
-                </span>
               </button>
               <button
                 onClick={() => setActiveTab("received")}
@@ -126,15 +117,6 @@ export default function RecentTransfers() {
               >
                 <DownloadSimple size={16} weight="bold" />
                 Received
-                <span
-                  className={`text-xs px-1.5 py-0.5 rounded-full ${
-                    activeTab === "received"
-                      ? "bg-gray-900 text-white"
-                      : "bg-gray-200 text-gray-600"
-                  }`}
-                >
-                  {received.length}
-                </span>
               </button>
             </div>
 
