@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "r
 import { AuthProvider } from "./context/AuthContext";
 import { useAuth } from "./hooks/useAuth";
 import Navbar from "./components/layout/Navbar.jsx";
-import { Loader } from "./components/commons/Loader.jsx";
 import { Product } from "./pages/Product.jsx";
 import { Login } from "./pages/Login.jsx";
 import { Signup } from "./pages/Signup.jsx";
@@ -16,15 +15,13 @@ import Dashboard from "./pages/Dashboard.jsx";
 import RecentTransfers from "./pages/RecentTransfers.jsx";
 
 const AuthRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-  if (loading) return <Loader />;
+  const { user } = useAuth();
   if (!user) return <Navigate to="/login" replace />;
   return children;
 };
 
 const GuestRoute = ({ children }) => {
-  const { user, loading } = useAuth();
-  if (loading) return <Loader />;
+  const { user } = useAuth();
   if (user) return <Navigate to="/home" replace />;
   return children;
 };

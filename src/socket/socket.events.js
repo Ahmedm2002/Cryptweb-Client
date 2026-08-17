@@ -8,6 +8,8 @@ const SOCKET_EVENTS = {
   DISCONNECT: "disconnect",
   CONNECT: "connect",
   OFFER: "offer",
+  PEER_DISCONNECT_INTENTIONAL: "peer:disconnect-intentional",
+  PEER_ENDED: "peer:ended",
   PEER_DISCONNECTED: "peer:disconnected",
   USERS_CONNECTED: "users:connected",
   NETWORK_USERS: "network:users",

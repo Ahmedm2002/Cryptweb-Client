@@ -1,7 +1,5 @@
 const isDev = import.meta.env.VITE_DEV;
 
-console.log(`Dev env: ${isDev}`);
-
 function createLogger(namespace) {
   const prefix = `[${namespace}]`;
 

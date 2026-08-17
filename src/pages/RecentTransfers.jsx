@@ -1,26 +1,20 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
-  PaperPlaneRight,
-  Download,
-  Clock,
-  FileText,
   Spinner,
+  PaperPlaneTilt,
+  DownloadSimple,
+  CaretLeft,
+  CaretRight,
 } from "phosphor-react";
-import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { useRecentTransfers } from "../hooks/useRecentTransfers";
 
 function formatFileSize(mb) {
   const size = Number(mb);
   if (isNaN(size) || size < 0.01) return "< 0.01 MB";
   return `${size.toFixed(2)} MB`;
-}
-
-function formatTime(seconds) {
-  if (seconds < 1) return "< 1s";
-  if (seconds < 60) return `${Math.round(seconds)}s`;
-  return `${Math.floor(seconds / 60)}m ${Math.round(seconds % 60)}s`;
 }
 
 function timeAgo(dateStr) {
@@ -40,120 +34,184 @@ function timeAgo(dateStr) {
 export default function RecentTransfers() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [transfers, setTransfers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("sent");
 
-  useEffect(() => {
-    async function fetchTransfers() {
-      try {
-        const res = await api.get("/file-transfers/recent?limit=20");
-        setTransfers(res.data || []);
-      } catch (err) {
-        setError(err.message || "Failed to load recent transfers");
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchTransfers();
-  }, []);
+  const {
+    transfers,
+    pageNo,
+    totalPages,
+    loading,
+    error,
+    setPage,
+    nextPage,
+    prevPage,
+    hasNextPage,
+    hasPrevPage,
+  } = useRecentTransfers(10);
+
+  const sent = transfers.filter((t) => t.transfer_type === "send");
+  const received = transfers.filter((t) => t.transfer_type === "receive");
+  const activeTransfers = activeTab === "sent" ? sent : received;
 
   return (
-    <div>
-      <button
-        onClick={() => navigate("/home")}
-        className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-4 transition-colors"
-      >
-        <ArrowLeft size={16} />
-        Back
-      </button>
+    <div className="min-h-screen flex flex-col items-center px-4">
+      <div className="w-full max-w-lg">
+        <button
+          onClick={() => navigate("/home")}
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 mb-4 transition-colors"
+        >
+          <ArrowLeft size={16} />
+          Back
+        </button>
 
-      <h1 className="text-xl font-semibold text-gray-900 mb-1">
-        Recent Transfers
-      </h1>
-      <p className="text-sm text-gray-500 mb-6">Your last 20 file transfers</p>
+        <h1 className="text-xl font-semibold text-gray-900 mb-1 text-center">
+          Recent Transfers
+        </h1>
+        <p className="text-sm text-gray-500 mb-6 text-center">
+          {totalPages > 0 && `Page ${pageNo} of ${totalPages}`}
+        </p>
 
-      {loading && (
-        <div className="flex items-center justify-center py-16">
-          <Spinner size={24} className="animate-spin text-gray-400" weight="bold" />
-        </div>
-      )}
+        {loading && (
+          <div className="flex items-center justify-center py-16">
+            <Spinner
+              size={24}
+              className="animate-spin text-gray-400"
+              weight="bold"
+            />
+          </div>
+        )}
 
-      {error && (
-        <div className="text-center py-16">
-          <p className="text-sm text-gray-500">{error}</p>
-        </div>
-      )}
+        {error && (
+          <div className="text-center py-16">
+            <p className="text-sm text-gray-500">{error}</p>
+          </div>
+        )}
 
-      {!loading && !error && transfers.length === 0 && (
-        <div className="text-center py-16">
-          <FileText size={32} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-sm text-gray-500">No transfers yet</p>
-        </div>
-      )}
+        {!loading && !error && transfers.length === 0 && (
+          <div className="text-center py-16">
+            <p className="text-sm text-gray-500">No transfers yet</p>
+          </div>
+        )}
 
-      {!loading && !error && transfers.length > 0 && (
-        <div className="space-y-2">
-          {transfers.map((t) => {
-            const isSent = t.senderEmail === user?.email;
-            const peerName = isSent ? t.receiverName : t.senderName;
-            const peerEmail = isSent ? t.receiverEmail : t.senderEmail;
-
-            return (
-              <div
-                key={t.id}
-                className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg"
+        {!loading && !error && transfers.length > 0 && (
+          <>
+            <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
+              <button
+                onClick={() => setActiveTab("sent")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "sent"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
               >
-                <div
-                  className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                    isSent
-                      ? "bg-[#ecfdf5] text-[#059669]"
-                      : "bg-[#fdf8f0] text-[#c78b4a]"
+                <PaperPlaneTilt size={16} weight="bold" />
+                Sent
+                <span
+                  className={`text-xs px-1.5 py-0.5 rounded-full ${
+                    activeTab === "sent"
+                      ? "bg-gray-900 text-white"
+                      : "bg-gray-200 text-gray-600"
                   }`}
                 >
-                  {isSent ? <PaperPlaneRight size={16} weight="bold" /> : <Download size={16} weight="bold" />}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5">
-                    <span
-                      className={`text-[11px] font-medium px-1.5 py-0.5 rounded ${
-                        isSent
-                          ? "bg-[#ecfdf5] text-[#059669]"
-                          : "bg-[#fdf8f0] text-[#c78b4a]"
-                      }`}
-                    >
-                      {isSent ? "Sent" : "Received"}
-                    </span>
-                    <span className="text-sm text-gray-900 truncate">
-                      {t.fileType}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-0.5 truncate">
-                    {isSent ? "to" : "from"} {peerName} ({peerEmail})
-                  </p>
-                </div>
-
-                <div className="text-right shrink-0">
-                  <p className="text-sm font-medium text-gray-900">
-                    {formatFileSize(t.fileSize)}
-                  </p>
-                  <div className="flex items-center gap-1 justify-end mt-0.5">
-                    <Clock size={11} className="text-gray-400" />
-                    <span className="text-[11px] text-gray-500">
-                      {formatTime(t.timeElapsed)}
-                    </span>
-                  </div>
-                </div>
-
-                <span className="text-[11px] text-gray-400 shrink-0 hidden sm:block">
-                  {timeAgo(t.completedAt)}
+                  {sent.length}
                 </span>
+              </button>
+              <button
+                onClick={() => setActiveTab("received")}
+                className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === "received"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                <DownloadSimple size={16} weight="bold" />
+                Received
+                <span
+                  className={`text-xs px-1.5 py-0.5 rounded-full ${
+                    activeTab === "received"
+                      ? "bg-gray-900 text-white"
+                      : "bg-gray-200 text-gray-600"
+                  }`}
+                >
+                  {received.length}
+                </span>
+              </button>
+            </div>
+
+            {activeTransfers.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-sm text-gray-500">
+                  No {activeTab} transfers on this page
+                </p>
               </div>
-            );
-          })}
-        </div>
-      )}
+            ) : (
+              <div className="space-y-2">
+                {activeTransfers.map((t) => (
+                  <div
+                    key={t.id}
+                    className="flex items-center gap-3 p-3 bg-white border border-gray-200 rounded-lg"
+                  >
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 bg-gray-100">
+                      {activeTab === "sent" ? (
+                        <PaperPlaneTilt
+                          size={16}
+                          className="text-gray-700"
+                          weight="bold"
+                        />
+                      ) : (
+                        <DownloadSimple
+                          size={16}
+                          className="text-gray-700"
+                          weight="bold"
+                        />
+                      )}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-gray-900 truncate">
+                        {t.file_type}
+                      </p>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <p className="text-sm font-medium text-gray-900">
+                        {formatFileSize(t.file_size)}
+                      </p>
+                      <p className="text-[11px] text-gray-400">
+                        {timeAgo(t.completed_at)}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between mt-6">
+                <button
+                  onClick={prevPage}
+                  disabled={!hasPrevPage}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  <CaretLeft size={14} />
+                  Previous
+                </button>
+                <span className="text-sm text-gray-500">
+                  {pageNo} / {totalPages}
+                </span>
+                <button
+                  onClick={nextPage}
+                  disabled={!hasNextPage}
+                  className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Next
+                  <CaretRight size={14} />
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

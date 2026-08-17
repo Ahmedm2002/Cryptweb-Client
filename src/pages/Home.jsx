@@ -6,7 +6,7 @@ import { useSocket } from "../socket/useSocket";
 import FileTransfer from "../components/file-transfer/FileTransfer";
 import NetworkUsers from "../components/dashboard/NetworkUsers";
 import IncomingRequest from "../components/dashboard/ConnectionStatus/IncomingRequest";
-import { SignOut, WarningCircle, X, WifiSlash } from "phosphor-react";
+import { SignOut, WarningCircle, X, WifiSlash, ArrowClockwise } from "phosphor-react";
 
 function Home() {
   const { user } = useAuth();
@@ -22,8 +22,11 @@ function Home() {
     connectedFriend,
     peerDisconnected,
     clearPeerDisconnected,
+    peerEnded,
+    clearPeerEnded,
     connectionPhase,
     connectingTo,
+    reconnectToServer,
   } = useSocket();
 
   useEffect(() => {
@@ -40,10 +43,11 @@ function Home() {
             <div className="flex items-start gap-3">
               <p className="text-sm text-gray-700 flex-1">{connectionError}</p>
               <button
-                onClick={() => setConnectionError(null)}
-                className="text-gray-400 hover:text-gray-600 text-xs font-medium whitespace-nowrap"
+                onClick={reconnectToServer}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-colors whitespace-nowrap"
               >
-                Dismiss
+                <ArrowClockwise size={12} />
+                Reconnect
               </button>
             </div>
           </div>
@@ -150,6 +154,30 @@ function Home() {
           />
         )}
       </div>
+
+      {peerEnded && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full mx-4 overflow-hidden">
+            <div className="flex flex-col items-center px-6 pt-8 pb-2">
+              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+                <SignOut size={24} className="text-gray-600" />
+              </div>
+              <p className="text-center text-sm text-gray-700 leading-relaxed">
+                {peerEnded.message}
+              </p>
+            </div>
+            <div className="px-6 pt-4 pb-6 flex justify-center">
+              <button
+                onClick={clearPeerEnded}
+                className="px-6 py-2.5 bg-[#1c1c28] text-white rounded-lg text-sm font-medium hover:bg-[#2a2a3a] transition-colors flex items-center gap-2"
+              >
+                <X size={14} />
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {peerDisconnected && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">

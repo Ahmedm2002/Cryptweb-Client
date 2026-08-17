@@ -14,6 +14,7 @@ import {
   emitConnectionResponse,
   emitUsersConnected,
   emitNetworkUsers,
+  emitDisconnectIntentional,
 } from "../socket/socket.handlers.js";
 import createLogger from "../utils/logger/devLogger.js";
 
@@ -33,9 +34,11 @@ export const SocketProvider = ({ children }) => {
   const [connectionError, setConnectionError] = useState(null);
   const [connectedFriend, setConnectedFriend] = useState(null);
   const [peerDisconnected, setPeerDisconnected] = useState(null);
+  const [peerEnded, setPeerEnded] = useState(null);
   const [connectionPhase, setConnectionPhase] = useState(null);
   const [connectingTo, setConnectingTo] = useState(null);
   const [networkUsers, setNetworkUsers] = useState([]);
+  const [isTransferring, setIsTransferring] = useState(false);
   const peerRef = useRef(null);
   const pendingFriendInfo = useRef(null);
   const isInitiatorRef = useRef(false);
@@ -85,6 +88,7 @@ export const SocketProvider = ({ children }) => {
     socket.on(SOCKET_EVENTS.ANSWER, onAnswer);
     socket.on(SOCKET_EVENTS.ICE_CANDIDATE, onIceCandidate);
     socket.on(SOCKET_EVENTS.PEER_DISCONNECTED, onPeerDisconnected);
+    socket.on(SOCKET_EVENTS.PEER_ENDED, onPeerEnded);
     socket.on(SOCKET_EVENTS.NETWORK_USERS, onNetworkUsers);
     socket.on(SOCKET_EVENTS.NETWORK_USER_JOINED, onNetworkUserJoined);
     socket.on(SOCKET_EVENTS.NETWORK_USER_LEFT, onNetworkUserLeft);
@@ -108,6 +112,7 @@ export const SocketProvider = ({ children }) => {
       socket.off(SOCKET_EVENTS.ANSWER, onAnswer);
       socket.off(SOCKET_EVENTS.ICE_CANDIDATE, onIceCandidate);
       socket.off(SOCKET_EVENTS.PEER_DISCONNECTED, onPeerDisconnected);
+      socket.off(SOCKET_EVENTS.PEER_ENDED, onPeerEnded);
       socket.off(SOCKET_EVENTS.NETWORK_USERS, onNetworkUsers);
       socket.off(SOCKET_EVENTS.NETWORK_USER_JOINED, onNetworkUserJoined);
       socket.off(SOCKET_EVENTS.NETWORK_USER_LEFT, onNetworkUserLeft);
@@ -195,20 +200,49 @@ export const SocketProvider = ({ children }) => {
     setConnectingTo(null);
   }
 
-  function onPeerDisconnected(data) {
-    setPeerDisconnected(data);
-    setConnectedFriend(null);
-    setIsConnectedWithFriend(false);
-    setConnectionPhase(null);
-    setConnectingTo(null);
+  function closePeerConnection() {
     if (peerRef.current) {
       peerRef.current.close();
       peerRef.current = null;
     }
   }
 
+  function onPeerEnded(data) {
+    log.log(`${data.name} (${data.email}) intentionally ended the connection`);
+    closePeerConnection();
+    setConnectedFriend(null);
+    setIsConnectedWithFriend(false);
+    setConnectionPhase(null);
+    setConnectingTo(null);
+    setPeerEnded(data);
+  }
+
+  function onPeerDisconnected(data) {
+    log.log(`${data.name} (${data.email}) disconnected unexpectedly`);
+    closePeerConnection();
+    setConnectedFriend(null);
+    setIsConnectedWithFriend(false);
+    setConnectionPhase(null);
+    setConnectingTo(null);
+    setPeerDisconnected(data);
+  }
+
   function clearPeerDisconnected() {
     setPeerDisconnected(null);
+  }
+
+  function clearPeerEnded() {
+    setPeerEnded(null);
+  }
+
+  function reconnectToServer() {
+    if (socketDisconnectTimerRef.current) {
+      clearTimeout(socketDisconnectTimerRef.current);
+      socketDisconnectTimerRef.current = null;
+    }
+    setConnectionError(null);
+    socket.disconnect();
+    socket.connect();
   }
 
   function onNetworkUsers(users) {
@@ -316,11 +350,13 @@ export const SocketProvider = ({ children }) => {
   }
 
   function disconnectFromFriend() {
-    log.log(`Disconnecting from friend`);
-    if (peerRef.current) {
-      peerRef.current.close();
-      peerRef.current = null;
+    if (isTransferring) {
+      setConnectionError("Cannot disconnect while a file transfer is in progress.");
+      return;
     }
+    log.log(`Disconnecting from friend`);
+    emitDisconnectIntentional(user?.email);
+    closePeerConnection();
     setIsConnectedWithFriend(false);
     setFriendStatus(null);
     setIsInitiator(false);
@@ -352,10 +388,15 @@ export const SocketProvider = ({ children }) => {
         connectedFriend,
         peerDisconnected,
         clearPeerDisconnected,
+        peerEnded,
+        clearPeerEnded,
         connectionPhase,
         connectingTo,
         networkUsers,
         requestNetworkUsers,
+        isTransferring,
+        setIsTransferring,
+        reconnectToServer,
       }}
     >
       {children}

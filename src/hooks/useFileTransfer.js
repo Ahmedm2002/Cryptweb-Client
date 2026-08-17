@@ -21,13 +21,14 @@ function getPreloadThreshold() {
   return isMobile ? 25 * 1024 * 1024 : 75 * 1024 * 1024;
 }
 
-function useFileTransfer(friendEmail, user, peerDisconnected) {
+function useFileTransfer(friendEmail, user, peerDisconnected, peerEnded) {
   const {
     subscribeToDataChannel,
     sendDataViaWebRTC,
     isDataChannelOpen,
     getDataChannel,
     getMaxMessageSize,
+    setIsTransferring: setContextTransferring,
   } = useSocket();
 
   const [selectedFile, setSelectedFile] = useState(null);
@@ -38,6 +39,10 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
   const [transferFailed, setTransferFailed] = useState(false);
   const [receivedBlob, setReceivedBlob] = useState(null);
   const [transferSpeed, setTransferSpeed] = useState(0);
+
+  useEffect(() => {
+    setContextTransferring(isTransferring);
+  }, [isTransferring, setContextTransferring]);
 
   const receivedChunksRef = useRef([]);
   const incomingFileRef = useRef(null);
@@ -215,14 +220,14 @@ function useFileTransfer(friendEmail, user, peerDisconnected) {
   }, [subscribeToDataChannel, onMessage]);
 
   useEffect(() => {
-    if (peerDisconnected && isTransferring) {
+    if ((peerDisconnected || peerEnded) && isTransferring) {
       clearTransferTimeout();
       abortControllerRef.current?.abort();
       setTransferFailed(true);
       setIsTransferring(false);
       setTransferSpeed(0);
     }
-  }, [peerDisconnected, isTransferring]);
+  }, [peerDisconnected, peerEnded, isTransferring]);
 
   useEffect(() => {
     return () => {

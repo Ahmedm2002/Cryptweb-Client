@@ -63,6 +63,11 @@ function emitNetworkUsers() {
   socket.emit(SOCKET_EVENTS.NETWORK_USERS);
 }
 
+function emitDisconnectIntentional(email) {
+  if (!socket) return;
+  socket.emit(SOCKET_EVENTS.PEER_DISCONNECT_INTENTIONAL, { email });
+}
+
 export {
   emitConnectionResponse,
   emitIceCandidate,
@@ -72,4 +77,5 @@ export {
   emitConnectionRequest,
   emitUsersConnected,
   emitNetworkUsers,
+  emitDisconnectIntentional,
 };

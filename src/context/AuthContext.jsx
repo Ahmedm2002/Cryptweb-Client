@@ -5,27 +5,26 @@ export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
-  const [isInitializing, setIsInitializing] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  async function checkSession() {
-    try {
-      const res = await api.get("/session/1");
-      if (res && res.success) {
-        setUser(res.data?.user || res.data);
-      } else {
-        setUser(null);
-      }
-    } catch (error) {
-      setUser(null);
-    } finally {
-      setIsInitializing(false);
-    }
-  }
   useEffect(() => {
+    let cancelled = false;
+    async function checkSession() {
+      try {
+        const res = await api.get("/session/1");
+        if (!cancelled && res && res.success) {
+          setUser(res.data?.user || res.data);
+        }
+      } catch {
+        // no session — stay null
+      }
+    }
     checkSession();
+    return () => { cancelled = true; };
   }, []);
 
   async function signup(name, email, password) {
+    setLoading(true);
     try {
       const res = await api.post("/auth/signup", { name, email, password });
       if (res && res.success) {
@@ -36,11 +35,12 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       return error;
     } finally {
-      setIsInitializing(false);
+      setLoading(false);
     }
   }
 
   async function login(email, password) {
+    setLoading(true);
     try {
       const res = await api.post("/auth/login", { email, password });
       if (res && res.success) {
@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       return error;
     } finally {
-      setIsInitializing(false);
+      setLoading(false);
     }
   }
 
@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }) => {
     <AuthContext.Provider
       value={{
         user,
-        loading: isInitializing,
+        loading,
         logout,
         login,
         signup,

@@ -4,11 +4,11 @@ import { useSocket } from "../../socket/useSocket";
 import { FileTransferIncoming } from "../file-transfer/FileTransferIncoming";
 import { FileTransferProgress } from "../file-transfer/FileTransferProgress";
 import { FileTransferDropzone } from "../file-transfer/FileTransferDropzone";
-import { ArrowUp, ArrowsClockwise, X, CheckCircle } from "phosphor-react";
+import { ArrowUp, ArrowsClockwise, CheckCircle } from "phosphor-react";
 
 const FileTransfer = ({ friendEmail, status }) => {
   const { user } = useAuth();
-  const { peerDisconnected } = useSocket();
+  const { peerDisconnected, peerEnded } = useSocket();
   const {
     selectedFile,
     setSelectedFile,
@@ -19,11 +19,10 @@ const FileTransfer = ({ friendEmail, status }) => {
     transferFailed,
     transferSpeed,
     sendSecuredFile,
-    cancelTransfer,
     retryTransfer,
     downloadFile,
     clearFile,
-  } = useFileTransfer(friendEmail, user, peerDisconnected);
+  } = useFileTransfer(friendEmail, user, peerDisconnected, peerEnded);
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -65,13 +64,6 @@ const FileTransfer = ({ friendEmail, status }) => {
             incomingFile={incomingFile}
             selectedFile={selectedFile}
           />
-          <button
-            onClick={cancelTransfer}
-            className="mt-4 px-4 py-2 text-sm text-gray-500 hover:text-red-600 transition-colors flex items-center gap-1.5"
-          >
-            <X size={14} />
-            Cancel
-          </button>
         </div>
       ) : transferComplete && !incomingFile ? (
         <div className="border-2 border-dashed border-green-200 bg-green-50 rounded-xl flex flex-col items-center justify-center p-8 min-h-[280px]">
