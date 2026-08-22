@@ -1,23 +1,31 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth.js";
 import { useNavigate } from "react-router-dom";
 import EmailInput from "../components/EmailInput";
 import { useSocket } from "../socket/useSocket";
-import FileTransfer from "../components/file-transfer/FileTransfer";
+import ChatWindow from "../components/chat/ChatWindow";
+import ActiveCall from "../components/calls/ActiveCall";
+import IncomingCall from "../components/calls/IncomingCall";
 import NetworkUsers from "../components/dashboard/NetworkUsers";
 import IncomingRequest from "../components/dashboard/ConnectionStatus/IncomingRequest";
-import { SignOut, WarningCircle, X, WifiSlash, ArrowClockwise } from "phosphor-react";
+import {
+  SignOut,
+  WarningCircle,
+  X,
+  WifiSlash,
+  ArrowClockwise,
+} from "phosphor-react";
 
 function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [toastHiddenFor, setToastHiddenFor] = useState(null);
   const {
     isConnectedWithFriend,
     friendStatus,
     incomingRequest,
     respondToRequest,
     connectionError,
-    setConnectionError,
     disconnectFromFriend,
     connectedFriend,
     peerDisconnected,
@@ -27,6 +35,7 @@ function Home() {
     connectionPhase,
     connectingTo,
     reconnectToServer,
+    activeCall,
   } = useSocket();
 
   useEffect(() => {
@@ -34,6 +43,20 @@ function Home() {
       navigate("/login");
     }
   }, [user, navigate]);
+
+  const showToast =
+    isConnectedWithFriend &&
+    !!connectedFriend &&
+    toastHiddenFor !== connectedFriend.email;
+
+  useEffect(() => {
+    if (!showToast) return;
+    const timer = setTimeout(
+      () => setToastHiddenFor(connectedFriend?.email),
+      7000,
+    );
+    return () => clearTimeout(timer);
+  }, [showToast, connectedFriend?.email]);
 
   return (
     <div className="relative w-full flex flex-col items-center gap-4">
@@ -53,36 +76,24 @@ function Home() {
           </div>
         )}
 
-        {isConnectedWithFriend && connectedFriend && (
-          <>
-            <div className="w-full max-w-2xl mx-auto p-3 bg-white border border-gray-200 rounded-lg shadow-sm flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500" />
-                <span className="text-sm text-gray-700">
-                  Connected to{" "}
-                  <span className="font-semibold">{connectedFriend.name}</span>
-                </span>
-              </div>
-              <button
-                onClick={disconnectFromFriend}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                <SignOut size={12} />
-                Disconnect
-              </button>
-            </div>
-            <div className="w-full max-w-2xl mx-auto p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
-              <WarningCircle
-                size={14}
-                className="text-amber-600 mt-0.5 shrink-0"
-              />
-              <p className="text-xs text-amber-700">
-                Refreshing the tab will close the connection with{" "}
-                <span className="font-semibold">{connectedFriend.name}</span>.
-                Any ongoing transfers will be lost.
-              </p>
-            </div>
-          </>
+        {showToast && (
+          <div className="fixed top-16 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-md p-3 bg-amber-50 border border-amber-200 rounded-lg shadow-lg flex items-start gap-2">
+            <WarningCircle
+              size={14}
+              className="text-amber-600 mt-0.5 shrink-0"
+            />
+            <p className="text-xs text-amber-700 flex-1">
+              Refreshing the tab will close the connection with{" "}
+              <span className="font-semibold">{connectedFriend.name}</span>. Any
+              ongoing transfers will be lost.
+            </p>
+            <button
+              onClick={() => setToastHiddenFor(connectedFriend.email)}
+              className="shrink-0 w-5 h-5 rounded-full hover:bg-amber-100 flex items-center justify-center transition-colors"
+            >
+              <X size={12} className="text-amber-600" weight="bold" />
+            </button>
+          </div>
         )}
 
         {!isConnectedWithFriend && (
@@ -143,7 +154,7 @@ function Home() {
         )}
 
         {isConnectedWithFriend && (
-          <FileTransfer
+          <ChatWindow
             friendEmail={
               connectedFriend?.email ||
               friendStatus?.email ||
@@ -151,9 +162,17 @@ function Home() {
               incomingRequest?.from
             }
             status={friendStatus}
+            onDisconnect={disconnectFromFriend}
           />
         )}
       </div>
+
+      <IncomingCall />
+      {activeCall && (
+        <ActiveCall
+          peerName={connectedFriend?.name || connectedFriend?.email}
+        />
+      )}
 
       {peerEnded && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">

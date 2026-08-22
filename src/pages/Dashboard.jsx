@@ -4,7 +4,7 @@ function Dashboard({ children }) {
 
   return (
     <>
-      <DashboardLayout>
+      <DashboardLayout fullWidth={!children}>
         {children || <Home />}
       </DashboardLayout>
     </>

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components -- context + provider belong together */
 import { createContext, useState, useEffect } from "react";
 import { api } from "../services/api";
 

@@ -12,6 +12,7 @@ export const Login = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  useDocumentTitle("Sign In");
 
   useEffect(() => {
     if (location.state?.email) setEmail(location.state.email);
@@ -42,7 +43,6 @@ export const Login = () => {
 
   return (
     <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center bg-[#FAFBFD] px-4 py-12">
-      <useDocumentTitle title="Sign In" />
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">

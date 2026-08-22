@@ -72,48 +72,10 @@ const FeaturePlaceholder = ({ variant = "default" }) => (
 );
 
 export const Features = () => {
-  const features = [
-    {
-      icon: <Lightning size={20} />,
-      title: "Lightning-fast transfers",
-      desc: "Without intermediary servers slowing things down, your files move as fast as your connection allows. Small files transfer in seconds. Large files complete in minutes.",
-      placeholder: "progress",
-    },
-    {
-      icon: <Shield size={20} weight="bold" />,
-      title: "No permanent cloud storage",
-      desc: "Your files never rest on someone else's server. They travel from your device to the recipient's, and that's it. No copies are stored anywhere else.",
-      placeholder: "upload",
-    },
-    {
-      icon: <Lock size={20} weight="bold" />,
-      title: "Encrypted from start to finish",
-      desc: "Every file is encrypted before it leaves your device and can only be decrypted by the intended recipient. Even we can't see what's being transferred.",
-      placeholder: "default",
-    },
-    {
-      icon: <Globe size={20} />,
-      title: "Works across any device",
-      desc: "No app to install. No software to update. Open your browser, and you're ready to send or receive files from any modern device with an internet connection.",
-      placeholder: "complete",
-    },
-    {
-      icon: <HardDrives size={20} />,
-      title: "Supports large files",
-      desc: "Send files of any size. Whether it's a 10 MB document or a 10 GB video, there are no artificial limits. The only constraint is your device's available memory.",
-      placeholder: "progress",
-    },
-    {
-      icon: <Upload size={20} weight="bold" />,
-      title: "Simple to use",
-      desc: "No complicated setup. No account required for basic use. Choose your files, connect with the recipient, and you're done. It really is that simple.",
-      placeholder: "upload",
-    },
-  ];
+  useDocumentTitle("Features");
 
   return (
     <div className="relative min-h-screen bg-[#FAFBFD] flex flex-col text-gray-900">
-      <useDocumentTitle title="Features" />
       <main className="relative z-10 flex-1">
         {/* Header */}
         <section className="bg-section-octagon pt-20 pb-16 sm:pt-28 sm:pb-20 border-b border-gray-100">

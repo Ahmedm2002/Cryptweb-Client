@@ -4,10 +4,10 @@ import { ArrowLeft } from "phosphor-react";
 import { useDocumentTitle } from "../hooks/useDocumentTitle.js";
 
 export const NotFound = () => {
+  useDocumentTitle("Page Not Found");
   return (
     <div className="relative h-[calc(100dvh-4rem)] bg-[#FAFBFD] flex flex-col overflow-hidden">
       <div className="absolute inset-0 z-0 bg-octagon-grid pointer-events-none" />
-      <useDocumentTitle title="Page Not Found" />
       <main className="flex-1 flex items-center justify-center px-3 py-4">
         <div className="w-full max-w-sm mx-auto text-center">
           <div className="relative inline-block mb-2 sm:mb-3">

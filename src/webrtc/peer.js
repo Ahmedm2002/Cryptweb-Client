@@ -1,15 +1,25 @@
-import { STUN_ONLY, STUN_AND_TURN } from "./iceServers";
+import { STUN_ONLY } from "./iceServers";
 import {
-  emitIceCandidate,
   emitWebRTCAnswer,
   emitWebRTCOffer,
 } from "../socket/socket.handlers";
 import createLogger from "../utils/logger/devLogger.js";
+import { diagnoseConnection } from "./connectionDiagnostics.js";
+import {
+  openDataChannel,
+  wireDataChannel,
+  sendDataReliably,
+} from "./dataChannelSend.js";
+import { bindConnectionEvents, startTurnFallbackTimer } from "./connectionEvents.js";
+import {
+  acquireMediaStream,
+  attachStreamToConnection,
+  stopStream,
+  detachAllTracks,
+  toggleStreamTracks,
+} from "./mediaControls.js";
 
-const log = createLogger("RTCPeer");
-
-const BUFFER_LOW_THRESHOLD = 262144;
-const SEND_TIMEOUT_MS = 30000;
+const log = createLogger("WebRTC");
 
 class RTCPeer {
   _maxRetryCount = 5;
@@ -35,99 +45,53 @@ class RTCPeer {
     this._dataChannel = null;
     this._maxMessageSize = 65536;
     this._turnFallbackTimer = null;
+    this._localStream = null;
+    this._remoteStream = null;
+    this._onRemoteStream = null;
   }
 
   init() {
+    log.log(`Initializing peer connection with ${this._remotePeerEmail} (STUN only)`);
     this._rtcConnection = new RTCPeerConnection(STUN_ONLY);
+    bindConnectionEvents(this._rtcConnection, this);
 
-    this._rtcConnection.onicecandidate = (event) => {
-      if (event.candidate) {
-        emitIceCandidate(
-          this._localEmail,
-          this._remotePeerEmail,
-          event.candidate,
-        );
-      }
-    };
+    // Start with STUN-only; after 5s without a direct connection, fall back to TURN.
+    this._turnFallbackTimer = startTurnFallbackTimer(this._rtcConnection);
+  }
 
-    this._rtcConnection.onconnectionstatechange = () => {
-      const state = this._rtcConnection.connectionState;
-      log.log(`Connection state: ${state} (with ${this._remotePeerEmail})`);
+  /** Invoked by connectionEvents when the socket-selected channel arrives. */
+  attachIncomingDataChannel(channel) {
+    this._dataChannel = channel;
+    this.setupDataChannel();
+  }
 
-      if (state === "connected") {
-        this._clearTurnFallback();
-        this.diagnoseConnection();
-        this._onConnect?.();
-      } else if (state === "failed") {
-        this.handleConnectionFailure();
-      }
-    };
+  /** Invoked by connectionEvents for each remote audio/video track. */
+  addRemoteTrack(track) {
+    log.log(`Remote track received from ${this._remotePeerEmail}`);
+    if (!this._remoteStream) {
+      this._remoteStream = new MediaStream();
+    }
+    if (!this._remoteStream.getTracks().includes(track)) {
+      this._remoteStream.addTrack(track);
+    }
+    this._onRemoteStream?.(this._remoteStream);
+  }
 
-    this._rtcConnection.ondatachannel = (event) => {
-      this._dataChannel = event.channel;
-      this.setupDataChannel();
-    };
+  onConnected() {
+    this._clearTurnFallback();
+    this.diagnoseConnection();
+    this._onConnect?.();
+  }
 
-    // STEP 7 — Start with STUN-only; after 5s if still no direct connection, fall back to TURN.
-    this._turnFallbackTimer = setTimeout(() => {
-      if (
-        this._rtcConnection &&
-        this._rtcConnection.connectionState !== "connected"
-      ) {
-        log.warn("[TURN-FALLBACK] No direct connection after 5s — adding TURN servers");
-        this._rtcConnection.setConfiguration(STUN_AND_TURN);
-        this._rtcConnection.restartIce();
-      }
-    }, 5000);
+  clearTurnFallback() {
+    this._clearTurnFallback();
   }
 
   async diagnoseConnection() {
-    try {
-      const stats = await this._rtcConnection.getStats();
-      let transport = null;
-      stats.forEach((report) => {
-        if (report.type === "transport") transport = report;
-      });
-
-      let localType = "unknown";
-      let remoteType = "unknown";
-
-      if (transport?.selectedCandidatePairId) {
-        const pair = stats.get(transport.selectedCandidatePairId);
-        if (pair) {
-          const local = stats.get(pair.localCandidateId);
-          const remote = stats.get(pair.remoteCandidateId);
-          localType = local?.candidateType || "unknown";
-          remoteType = remote?.candidateType || "unknown";
-        }
-      }
-
-      this._maxMessageSize =
-        this._rtcConnection?.sctp?.maxMessageSize || 65536;
-      const relayed =
-        localType === "relay" || remoteType === "relay";
-
-      log.log(
-        `[ICE] Connection path: ${localType}↔${remoteType}${relayed ? " — TURN in use" : ""}`,
-      );
-      log.log(`[ICE] SCTP maxMessageSize: ${this._maxMessageSize}`);
-
-      if (relayed) {
-        log.warn(
-          `[ICE] relay↔relay detected — TURN in use. On same-LAN this explains slow transfers.`,
-        );
-      }
-
-      this._onConnectionStats?.({
-        localCandidateType: localType,
-        remoteCandidateType: remoteType,
-        candidateType: `${localType}↔${remoteType}`,
-        relayed,
-        maxMessageSize: this._maxMessageSize,
-      });
-    } catch (err) {
-      log.error("Failed to get connection stats:", err);
-    }
+    const maxMessageSize = await diagnoseConnection(this._rtcConnection, {
+      onStats: this._onConnectionStats,
+    });
+    this._maxMessageSize = maxMessageSize;
   }
 
   async handleConnectionFailure() {
@@ -141,53 +105,57 @@ class RTCPeer {
   }
 
   async retryConnection() {
-    if (this._dataChannel) {
-      this._dataChannel.close();
-      this._dataChannel = null;
-    }
-
-    if (this._rtcConnection) {
-      this._rtcConnection.close();
-      this._rtcConnection = null;
-    }
+    log.warn(
+      `Retrying connection (attempt ${this._retryCount}/${this._maxRetryCount}) with ${this._remotePeerEmail}`,
+    );
+    this._closeChannelAndConnection();
 
     try {
       this.init();
-      this._dataChannel = this._rtcConnection.createDataChannel(
-        "channel:file-transfer",
-        { ordered: true },
-      );
+      this._dataChannel = openDataChannel(this._rtcConnection);
       this.setupDataChannel();
-      const offer = await this._rtcConnection.createOffer();
-      await this._rtcConnection.setLocalDescription(offer);
-      emitWebRTCOffer(this._localEmail, this._remotePeerEmail, offer);
+      await this._createAndSendOffer();
     } catch {
       this._onConnectionFailure?.(this.unableToConnect());
     }
   }
 
+  async _createAndSendOffer() {
+    const offer = await this._rtcConnection.createOffer();
+    await this._rtcConnection.setLocalDescription(offer);
+    log.log(`SDP offer created & sent to ${this._remotePeerEmail}`);
+    emitWebRTCOffer(this._localEmail, this._remotePeerEmail, offer);
+  }
+
+  _closeChannelAndConnection() {
+    if (this._dataChannel) {
+      this._dataChannel.close();
+      this._dataChannel = null;
+    }
+    if (this._rtcConnection) {
+      this._rtcConnection.close();
+      this._rtcConnection = null;
+    }
+  }
+
   setupDataChannel() {
-    this._dataChannel.bufferedAmountLowThreshold = BUFFER_LOW_THRESHOLD;
-
-    this._dataChannel.onopen = () => {
-      log.log(`Data channel open with ${this._remotePeerEmail}`);
-    };
-
-    this._dataChannel.onmessage = (event) => {
-      this._onDataChannelMessage?.(event.data);
-    };
-
-    this._dataChannel.onerror = (error) => {
-      log.error(`Data channel error:`, error);
-    };
-
-    this._dataChannel.onclose = () => {
-      log.log(`Data channel closed with ${this._remotePeerEmail}`);
-    };
+    wireDataChannel(
+      this._dataChannel,
+      this._remotePeerEmail,
+      (data) => this._onDataChannelMessage?.(data),
+    );
   }
 
   isDataChannelOpen() {
     return this._dataChannel?.readyState === "open";
+  }
+
+  isConnected() {
+    return this._rtcConnection?.connectionState === "connected";
+  }
+
+  hasLocalMedia() {
+    return !!this._localStream;
   }
 
   getDataChannel() {
@@ -198,116 +166,25 @@ class RTCPeer {
     return this._maxMessageSize;
   }
 
-  sendData(data, { signal, timeoutMs = SEND_TIMEOUT_MS } = {}) {
-    return new Promise((resolve, reject) => {
-      if (signal?.aborted) {
-        return reject(new Error("Transfer aborted"));
-      }
-
-      if (!this._dataChannel || this._dataChannel.readyState !== "open") {
-        return reject(new Error("Data channel is not open"));
-      }
-
-      let drainHandler = null;
-      let settled = false;
-
-      const timer = setTimeout(() => {
-        if (!settled) {
-          settled = true;
-          cleanup();
-          log.error("Send timeout: buffer not draining");
-          reject(new Error("Send timeout: buffer not draining"));
-        }
-      }, timeoutMs);
-
-      const onAbort = () => {
-        if (!settled) {
-          settled = true;
-          cleanup();
-          reject(new Error("Transfer aborted"));
-        }
-      };
-
-      signal?.addEventListener("abort", onAbort, { once: true });
-
-      const cleanup = () => {
-        clearTimeout(timer);
-        signal?.removeEventListener("abort", onAbort);
-        if (drainHandler && this._dataChannel) {
-          this._dataChannel.removeEventListener(
-            "bufferedamountlow",
-            drainHandler,
-          );
-          drainHandler = null;
-        }
-      };
-
-      const attempt = () => {
-        if (settled) return;
-
-        if (signal?.aborted) {
-          settled = true;
-          cleanup();
-          return reject(new Error("Transfer aborted"));
-        }
-
-        if (!this._dataChannel || this._dataChannel.readyState !== "open") {
-          settled = true;
-          cleanup();
-          return reject(new Error("Data channel closed during transfer"));
-        }
-
-        if (
-          this._dataChannel.bufferedAmount >
-          this._dataChannel.bufferedAmountLowThreshold
-        ) {
-          drainHandler = () => {
-            drainHandler = null;
-            attempt();
-          };
-          this._dataChannel.addEventListener(
-            "bufferedamountlow",
-            drainHandler,
-            { once: true },
-          );
-          return;
-        }
-
-        try {
-          this._dataChannel.send(data);
-          settled = true;
-          cleanup();
-          resolve();
-        } catch (err) {
-          settled = true;
-          cleanup();
-          reject(err);
-        }
-      };
-
-      attempt();
-    });
+  sendData(data, options) {
+    return sendDataReliably(this._dataChannel, data, options);
   }
 
   async createOffer() {
     this._isInitiator = true;
 
-    this._dataChannel = this._rtcConnection.createDataChannel(
-      "channel:file-transfer",
-      { ordered: true },
-    );
-
+    this._dataChannel = openDataChannel(this._rtcConnection);
     this.setupDataChannel();
-
-    const offer = await this._rtcConnection.createOffer();
-    await this._rtcConnection.setLocalDescription(offer);
-
-    emitWebRTCOffer(this._localEmail, this._remotePeerEmail, offer);
+    await this._createAndSendOffer();
   }
 
   async handleOffer(offer) {
-    if (this._rtcConnection.signalingState !== "stable") return;
+    if (this._rtcConnection.signalingState !== "stable") {
+      log.warn(`Ignoring offer — signaling state is ${this._rtcConnection.signalingState}`);
+      return;
+    }
 
+    log.log(`SDP offer received from ${this._remotePeerEmail}, answering`);
     await this._rtcConnection.setRemoteDescription(
       new RTCSessionDescription(offer),
     );
@@ -319,6 +196,7 @@ class RTCPeer {
   }
 
   async handleAnswer(answer) {
+    log.log(`SDP answer received from ${this._remotePeerEmail}`);
     await this._rtcConnection.setRemoteDescription(
       new RTCSessionDescription(answer),
     );
@@ -335,16 +213,43 @@ class RTCPeer {
     }
   }
 
+  set onRemoteStream(callback) {
+    this._onRemoteStream = callback;
+  }
+
+  async startMedia(type) {
+    log.log(`Acquiring ${type} media stream`);
+    const stream = await acquireMediaStream(type);
+    this._localStream = stream;
+    attachStreamToConnection(this._rtcConnection, stream);
+    return stream;
+  }
+
+  async renegotiate() {
+    await this._createAndSendOffer();
+  }
+
+  toggleAudio(enabled) {
+    toggleStreamTracks(this._localStream, "audio", enabled);
+  }
+
+  toggleVideo(enabled) {
+    toggleStreamTracks(this._localStream, "video", enabled);
+  }
+
+  stopMedia() {
+    stopStream(this._localStream);
+    this._localStream = null;
+    this._remoteStream = null;
+    detachAllTracks(this._rtcConnection);
+    this._onRemoteStream = null;
+  }
+
   close() {
+    log.log(`Closing peer connection with ${this._remotePeerEmail}`);
+    this.stopMedia();
     this._clearTurnFallback();
-    if (this._dataChannel) {
-      try { this._dataChannel.close(); } catch { /* already closed */ }
-      this._dataChannel = null;
-    }
-    if (this._rtcConnection) {
-      try { this._rtcConnection.close(); } catch { /* already closed */ }
-      this._rtcConnection = null;
-    }
+    this._closeChannelAndConnection();
   }
 
   _clearTurnFallback() {

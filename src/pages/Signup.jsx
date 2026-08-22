@@ -13,6 +13,7 @@ export const Signup = () => {
   const [loading, setLoading] = useState(false);
   const { signup } = useAuth();
   const navigate = useNavigate();
+  useDocumentTitle("Create an Account");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -37,7 +38,6 @@ export const Signup = () => {
 
   return (
     <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center bg-[#FAFBFD] px-4 py-12">
-      <useDocumentTitle title="Create an Account" />
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">

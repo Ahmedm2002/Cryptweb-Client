@@ -1,26 +1,24 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useSocket } from "../socket/useSocket";
-import { api } from "../services/api.js";
 import createLogger from "../utils/logger/devLogger.js";
+import { recordCompletedTransfer } from "../services/transferHistory.js";
+import { sendFilePipeline } from "../webrtc/filePump.js";
+import { IncomingFileAssembler } from "../webrtc/fileReceiver.js";
+import { downloadBlob } from "../utils/download.js";
 
 const log = createLogger("FileTransfer");
 
-const DEFAULT_CHUNK_SIZE = 65536;
-const MAX_CHUNK_SIZE = 262144;
-const BUFFER_LOW_THRESHOLD = 262144;
 const TRANSFER_TIMEOUT_MS = 60000;
 const PROGRESS_THROTTLE_MS = 80;
 
-function getPreloadThreshold() {
-  const mem = navigator.deviceMemory;
-  if (mem >= 8) return 100 * 1024 * 1024;
-  if (mem >= 4) return 75 * 1024 * 1024;
-  if (mem >= 2) return 50 * 1024 * 1024;
-  if (mem) return 25 * 1024 * 1024;
-  const isMobile = /Mobi|Android/i.test(navigator.userAgent);
-  return isMobile ? 25 * 1024 * 1024 : 75 * 1024 * 1024;
+function makeId() {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+/**
+ * Manages chat file transfers as a list of UI records.
+ * One outbound OR inbound transfer may be active at a time.
+ */
 function useFileTransfer(friendEmail, user, peerDisconnected, peerEnded) {
   const {
     subscribeToDataChannel,
@@ -31,27 +29,39 @@ function useFileTransfer(friendEmail, user, peerDisconnected, peerEnded) {
     setIsTransferring: setContextTransferring,
   } = useSocket();
 
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [incomingFile, setIncomingFile] = useState(null);
-  const [transferProgress, setTransferProgress] = useState(0);
-  const [isTransferring, setIsTransferring] = useState(false);
-  const [transferComplete, setTransferComplete] = useState(false);
-  const [transferFailed, setTransferFailed] = useState(false);
-  const [receivedBlob, setReceivedBlob] = useState(null);
-  const [transferSpeed, setTransferSpeed] = useState(0);
+  const [transfers, setTransfers] = useState([]);
 
-  useEffect(() => {
-    setContextTransferring(isTransferring);
-  }, [isTransferring, setContextTransferring]);
-
-  const receivedChunksRef = useRef([]);
-  const incomingFileRef = useRef(null);
-  const startTimeRef = useRef(null);
-  const sendRetryCount = useRef(0);
+  const activeIdRef = useRef(null);
   const abortControllerRef = useRef(null);
   const timeoutRef = useRef(null);
-  const lastProgressTimeRef = useRef(null);
-  const lastRenderTimeRef = useRef(0);
+  const startTimeRef = useRef(null);
+  const lastProgressRenderRef = useRef(0);
+  const assemblerRef = useRef(new IncomingFileAssembler());
+
+  const ctxRef = useRef({});
+  useEffect(() => {
+    ctxRef.current = { friendEmail, user };
+  }, [friendEmail, user]);
+
+  const transfersRef = useRef([]);
+  useEffect(() => {
+    transfersRef.current = transfers;
+  }, [transfers]);
+
+  // Sync active-transfer flag to context (blocks disconnect, etc.)
+  useEffect(() => {
+    setContextTransferring(transfers.some((t) => t.status === "active"));
+  }, [transfers, setContextTransferring]);
+
+  const addTransfer = useCallback((t) => {
+    setTransfers((prev) => [...prev, t]);
+  }, []);
+
+  const updateTransfer = useCallback((id, patch) => {
+    setTransfers((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...patch } : t)),
+    );
+  }, []);
 
   const clearTransferTimeout = () => {
     if (timeoutRef.current) {
@@ -60,479 +70,275 @@ function useFileTransfer(friendEmail, user, peerDisconnected, peerEnded) {
     }
   };
 
-  const resetTransferTimeout = () => {
+  const failActiveTransfers = useCallback(() => {
     clearTransferTimeout();
-    lastProgressTimeRef.current = Date.now();
-    timeoutRef.current = setTimeout(() => {
-      abortControllerRef.current?.abort();
-    }, TRANSFER_TIMEOUT_MS);
-  };
+    if (activeIdRef.current)
+      updateTransfer(activeIdRef.current, { status: "failed" });
+    if (assemblerRef.current.id)
+      updateTransfer(assemblerRef.current.id, { status: "failed" });
+    activeIdRef.current = null;
+    assemblerRef.current.reset();
+  }, [updateTransfer]);
 
-  const cleanup = useCallback(() => {
+  const resetTransferTimeout = useCallback(() => {
     clearTransferTimeout();
-    abortControllerRef.current = null;
-    sendRetryCount.current = 0;
+    timeoutRef.current = setTimeout(() => {
+      log.error("Transfer timed out");
+      failActiveTransfers();
+    }, TRANSFER_TIMEOUT_MS);
+  }, [failActiveTransfers]);
+
+  const record = useCallback((fileName, fileSize, fileType, transferType) => {
+    recordCompletedTransfer({
+      userEmail: ctxRef.current.user?.email,
+      friendEmail: ctxRef.current.friendEmail,
+      startedAt: startTimeRef.current,
+      fileName,
+      fileSize,
+      fileType,
+      transferType,
+    });
   }, []);
 
-  const recordTransfer = useCallback(
-    ({ fileName, fileSize, fileType, transferType }) => {
-      if (!user?.email || !friendEmail || !startTimeRef.current) return;
-
-      const timeElapsed = (Date.now() - startTimeRef.current) / 1000;
-
-      api
-        .post("/file-transfers/complete", {
-          senderEmail: transferType === "send" ? user.email : friendEmail,
-          receiverEmail: transferType === "send" ? friendEmail : user.email,
-          fileName,
-          fileSize,
-          fileType,
-          timeElapsed,
-          transferType,
-        })
-        .catch(() => {});
+  // --- receive ----------------------------------------------------------
+  const handleMetadata = useCallback(
+    (msg) => {
+      if (assemblerRef.current.active) return; // protocol: one at a time
+      const id = makeId();
+      const desc = assemblerRef.current.begin(id, msg);
+      startTimeRef.current = Date.now();
+      lastProgressRenderRef.current = 0;
+      addTransfer({
+        ...desc,
+        direction: "in",
+        progress: 0,
+        status: "active",
+        blob: null,
+        ts: Date.now(),
+      });
+      resetTransferTimeout();
     },
-    [user, friendEmail],
+    [addTransfer, resetTransferTimeout],
   );
 
-  const onMessage = useCallback((data) => {
-    try {
-      if (typeof data === "string") {
-        const msg = JSON.parse(data);
+  const handleComplete = useCallback(
+    (msg) => {
+      clearTransferTimeout();
+      const assembler = assemblerRef.current;
+      const id = assembler.id;
+      const result = id ? assembler.finalize(msg) : { ok: false };
 
-        if (msg.type === "metadata") {
-          log.log("Incoming file:", msg.fileName, `${(msg.fileSize / 1024 / 1024).toFixed(1)}MB`, `${msg.totalChunks} chunks`);
-          receivedChunksRef.current = [];
-          incomingFileRef.current = {
-            name: msg.fileName,
-            size: msg.fileSize,
-            type: msg.fileType,
-            totalChunks: msg.totalChunks,
-          };
-          setIncomingFile({ ...incomingFileRef.current });
-          setTransferProgress(0);
-          setIsTransferring(true);
-          setTransferComplete(false);
-          setTransferFailed(false);
-          setTransferSpeed(0);
-          startTimeRef.current = Date.now();
-        } else if (msg.type === "complete") {
-          log.log("Transfer complete signal received");
-          clearTransferTimeout();
-          setIsTransferring(false);
-          setTransferComplete(true);
-          setTransferSpeed(0);
+      if (result.ok) {
+        updateTransfer(id, {
+          status: "done",
+          progress: 100,
+          blob: result.blob,
+        });
+        record(
+          assembler.meta.name,
+          assembler.meta.size,
+          assembler.meta.type,
+          "receive",
+        );
+        log.log(`Receive complete: ${assembler.meta.name}`);
+      } else if (id) {
+        updateTransfer(id, { status: "failed" });
+        log.error(`Receive failed verification for transfer ${id}`);
+      }
+      assembler.reset();
+    },
+    [updateTransfer, record],
+  );
 
-          const totalExpected = msg.totalChunks;
-          const totalReceived = receivedChunksRef.current.length;
+  /** Peer cancelled their side of the transfer. */
+  const handleCancelNotice = useCallback(() => {
+    if (assemblerRef.current.active) {
+      const id = assemblerRef.current.id;
+      const name = assemblerRef.current.meta?.name;
+      log.log(`Peer cancelled the incoming transfer "${name}"`);
+      assemblerRef.current.reset();
+      clearTransferTimeout();
+      if (id) updateTransfer(id, { status: "cancelled" });
+    }
+    if (activeIdRef.current && abortControllerRef.current) {
+      log.log("Peer cancelled our outgoing transfer");
+      abortControllerRef.current.abort(new Error("Cancelled by peer"));
+    }
+  }, [updateTransfer]);
 
-          if (totalReceived !== totalExpected) {
-            log.error(`Chunk count mismatch: expected ${totalExpected}, got ${totalReceived}`);
-            setTransferFailed(true);
-            setTransferComplete(false);
-            return;
-          }
-
-          const blob = new Blob(receivedChunksRef.current, {
-            type: incomingFileRef.current?.type || "application/octet-stream",
-          });
-
-          if (msg.fileSize && blob.size !== msg.fileSize) {
-            log.error(`File size mismatch: expected ${msg.fileSize}, got ${blob.size}`);
-            setTransferFailed(true);
-            setTransferComplete(false);
-            return;
-          }
-
-          setReceivedBlob(blob);
-
-          const fInfo = incomingFileRef.current;
-          if (fInfo) {
-            recordTransfer({
-              fileName: fInfo.name,
-              fileSize: fInfo.size,
-              fileType: fInfo.type,
-              transferType: "receive",
-            });
-          }
-
-          const elapsed =
-            (Date.now() - startTimeRef.current) / 1000;
-          const throughput =
-            blob.size / elapsed / 1024 / 1024;
-          log.log(
-            `Transfer timing: ${(blob.size / 1024 / 1024).toFixed(2)}MB in ${elapsed.toFixed(1)}s @ ${throughput.toFixed(2)} MB/s`,
-          );
+  const onMessage = useCallback(
+    (data) => {
+      try {
+        if (typeof data === "string") {
+          const msg = JSON.parse(data);
+          if (msg.type === "metadata") handleMetadata(msg);
+          else if (msg.type === "complete") handleComplete(msg);
+          else if (msg.type === "cancel") handleCancelNotice();
+          return;
         }
-      } else if (data instanceof ArrayBuffer) {
-        if (data.byteLength < 9) return;
-
-        const view = new DataView(data);
-        const marker = view.getUint8(0);
-
-        if (marker !== 0x01) return;
-
-        const chunkIndex = view.getUint32(1, false);
-        const totalChunks = view.getUint32(5, false);
-        // STEP 5 — Zero-copy: view into the incoming ArrayBuffer instead of slicing a new one.
-        // Known follow-up: for very large transfers, switch from Blob to ReadableStream
-        // to avoid buffering all chunks in memory simultaneously.
-        const raw_data = new Uint8Array(data, 9);
 
         if (
-          incomingFileRef.current &&
-          totalChunks !== incomingFileRef.current.totalChunks
+          data instanceof ArrayBuffer &&
+          data.byteLength > 9 &&
+          new DataView(data).getUint8(0) === 0x01
         ) {
-          log.error(
-            `Total chunks mismatch in chunk ${chunkIndex}: expected ${incomingFileRef.current.totalChunks}, got ${totalChunks}`,
-          );
-        }
+          if (!assemblerRef.current.id) return; // no active inbound transfer
 
-        receivedChunksRef.current.push(raw_data);
+          const { chunkIndex, totalChunks } =
+            assemblerRef.current.pushChunk(data);
+          resetTransferTimeout();
 
-        const currentProgress = Math.round(
-          ((chunkIndex + 1) / totalChunks) * 100,
-        );
-        resetTransferTimeout();
-
-        const now = Date.now();
-        if (now - lastRenderTimeRef.current >= PROGRESS_THROTTLE_MS) {
-          lastRenderTimeRef.current = now;
-          setTransferProgress(currentProgress);
-
-          if (startTimeRef.current && incomingFileRef.current?.size) {
-            const elapsed = (now - startTimeRef.current) / 1000;
-            if (elapsed > 0.3) {
-              const bytesSoFar =
-                (currentProgress / 100) * incomingFileRef.current.size;
-              setTransferSpeed(bytesSoFar / elapsed);
-            }
+          const now = Date.now();
+          const isLast = chunkIndex + 1 === totalChunks;
+          if (
+            now - lastProgressRenderRef.current >= PROGRESS_THROTTLE_MS ||
+            isLast
+          ) {
+            lastProgressRenderRef.current = now;
+            updateTransfer(assemblerRef.current.id, {
+              progress: Math.round(((chunkIndex + 1) / totalChunks) * 100),
+            });
           }
         }
+      } catch (err) {
+        log.error("Error processing data channel message", err);
       }
-    } catch (err) {
-      log.error("Error processing data channel message", err);
-    }
-  }, []);
+    },
+    [
+      handleMetadata,
+      handleComplete,
+      handleCancelNotice,
+      resetTransferTimeout,
+      updateTransfer,
+    ],
+  );
 
   useEffect(() => {
     subscribeToDataChannel(onMessage);
   }, [subscribeToDataChannel, onMessage]);
 
   useEffect(() => {
-    if ((peerDisconnected || peerEnded) && isTransferring) {
-      clearTransferTimeout();
-      abortControllerRef.current?.abort();
-      setTransferFailed(true);
-      setIsTransferring(false);
-      setTransferSpeed(0);
+    if (
+      (peerDisconnected || peerEnded) &&
+      (activeIdRef.current || assemblerRef.current.active)
+    ) {
+      failActiveTransfers();
     }
-  }, [peerDisconnected, peerEnded, isTransferring]);
+  }, [peerDisconnected, peerEnded, failActiveTransfers]);
 
   useEffect(() => {
-    return () => {
+    return () => clearTransferTimeout();
+  }, []);
+
+  // --- send ---------------------------------------------------------------
+  const sendFile = useCallback(
+    async (file) => {
+      if (!file || activeIdRef.current || assemblerRef.current.active)
+        return false;
+      if (!isDataChannelOpen()) {
+        log.error("Data channel not open, cannot send");
+        return false;
+      }
+
+      const id = makeId();
+      activeIdRef.current = id;
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      startTimeRef.current = Date.now();
+
+      addTransfer({
+        id,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+        direction: "out",
+        progress: 0,
+        status: "active",
+        blob: null,
+        ts: Date.now(),
+      });
+      resetTransferTimeout();
+
+      const result = await sendFilePipeline({
+        file,
+        controller,
+        dc: getDataChannel(),
+        maxMsgSize: getMaxMessageSize?.(),
+        send: sendDataViaWebRTC,
+        onProgress: (pct) => updateTransfer(id, { progress: pct }),
+        onChunkSent: resetTransferTimeout,
+      });
+
       clearTransferTimeout();
-    };
-  }, []);
+      activeIdRef.current = null;
+      abortControllerRef.current = null;
 
-  const pumpChunks = async (file, totalChunks, chunkSize, controller, fileBuffer) => {
-    const abortSignal = controller.signal;
-    const dc = getDataChannel();
-
-    if (!dc || dc.readyState !== "open") {
-      setTransferFailed(true);
-      setIsTransferring(false);
-      cleanup();
-      return;
-    }
-
-    // STEP 4 — Pre-allocate a single packet buffer (header 9B + chunkSize) once.
-    // Reused every iteration: dc.send() copies internally, subarray() is zero-copy.
-    const packetView = new Uint8Array(9 + chunkSize);
-    const packetHeader = new DataView(packetView.buffer);
-
-    let chunkId = 0;
-    let offset = 0;
-    let pumping = false;
-    let chunksThisSec = 0;
-    let bytesThisSec = 0;
-    let lastLogTime = Date.now();
-
-    dc.bufferedAmountLowThreshold = BUFFER_LOW_THRESHOLD;
-
-    const onDrain = () => {
-      if (!pumping && !abortSignal.aborted) {
-        pump();
+      if (result === "complete") {
+        updateTransfer(id, { status: "done", progress: 100 });
+        record(file.name, file.size, file.type, "send");
+        log.log(
+          `Send complete: ${file.name} in ${((Date.now() - startTimeRef.current) / 1000).toFixed(1)}s`,
+        );
+      } else if (result === "aborted") {
+        updateTransfer(id, { status: "cancelled" });
+        log.log(`Send cancelled: ${file.name}`);
+      } else if (result === "failed") {
+        updateTransfer(id, { status: "failed" });
+        log.error(`Send failed: ${file.name}`);
       }
-    };
-    dc.addEventListener("bufferedamountlow", onDrain);
+      return true;
+    },
+    [
+      addTransfer,
+      updateTransfer,
+      resetTransferTimeout,
+      sendDataViaWebRTC,
+      isDataChannelOpen,
+      getDataChannel,
+      getMaxMessageSize,
+      record,
+    ],
+  );
 
-    // STEP 6 — Synchronous while loop driven by a single bufferedamountlow listener.
-    // No await inside the preload hot path; fallback path has one await per chunk (disk slice).
-    const pump = async () => {
-      if (pumping || abortSignal.aborted) return;
-      pumping = true;
-
-      try {
-        while (
-          offset < file.size &&
-          dc.bufferedAmount <= BUFFER_LOW_THRESHOLD
-        ) {
-          if (abortSignal.aborted) break;
-
-          let len;
-          if (fileBuffer) {
-            len = Math.min(chunkSize, fileBuffer.byteLength - offset);
-            packetView.set(new Uint8Array(fileBuffer, offset, len), 9);
-          } else {
-            const slice = file.slice(offset, offset + chunkSize);
-            const ab = await slice.arrayBuffer();
-            len = ab.byteLength;
-            packetView.set(new Uint8Array(ab), 9);
-          }
-
-          packetHeader.setUint8(0, 0x01);
-          packetHeader.setUint32(1, chunkId, false);
-          packetHeader.setUint32(5, totalChunks, false);
-
-          try {
-            dc.send(packetView.subarray(0, 9 + len));
-          } catch (sendErr) {
-            if (!abortSignal.aborted) {
-              log.error("Pump send error:", sendErr.message);
-              setTransferFailed(true);
-              setIsTransferring(false);
-              setTransferSpeed(0);
-            }
-            dc.removeEventListener("bufferedamountlow", onDrain);
-            clearTransferTimeout();
-            cleanup();
-            return;
-          }
-
-          chunkId++;
-          offset += chunkSize;
-          resetTransferTimeout();
-
-          const now = Date.now();
-          if (
-            now - lastRenderTimeRef.current >= PROGRESS_THROTTLE_MS
-          ) {
-            lastRenderTimeRef.current = now;
-            const progress = Math.round(
-              (chunkId / totalChunks) * 100,
-            );
-            setTransferProgress(progress);
-
-            if (startTimeRef.current) {
-              const elapsed = (now - startTimeRef.current) / 1000;
-              if (elapsed > 0.3) {
-                setTransferSpeed(offset / elapsed);
-              }
-            }
-          }
-
-          chunksThisSec++;
-          bytesThisSec += 9 + len;
-          if (now - lastLogTime >= 1000) {
-            const secElapsed = (now - lastLogTime) / 1000;
-            log.log(
-              `[PUMP] ${chunksThisSec} chunks/s | ${(bytesThisSec / secElapsed / 1024).toFixed(1)} KB/s | buffer: ${dc.bufferedAmount} bytes`,
-            );
-            chunksThisSec = 0;
-            bytesThisSec = 0;
-            lastLogTime = now;
-          }
-        }
-
-        if (offset >= file.size && !abortSignal.aborted) {
-          dc.removeEventListener("bufferedamountlow", onDrain);
-          setTransferProgress(100);
-
-          try {
-            await sendDataViaWebRTC(
-              JSON.stringify({
-                type: "complete",
-                totalChunks,
-                fileSize: file.size,
-              }),
-              {
-                signal: abortSignal,
-                timeoutMs: TRANSFER_TIMEOUT_MS,
-              },
-            );
-          } catch {
-            if (!abortSignal.aborted) {
-              log.error("Failed to send completion signal");
-            }
-          }
-
-          clearTransferTimeout();
-          setIsTransferring(false);
-          setTransferComplete(true);
-          setTransferSpeed(0);
-          cleanup();
-
-          const elapsed =
-            (Date.now() - startTimeRef.current) / 1000;
-          const throughput =
-            file.size / elapsed / 1024 / 1024;
-          log.log(`Send complete: ${file.name}`);
-          log.log(
-            `Transfer timing: ${(file.size / 1024 / 1024).toFixed(2)}MB in ${elapsed.toFixed(1)}s @ ${throughput.toFixed(2)} MB/s`,
-          );
-
-          recordTransfer({
-            fileName: file.name,
-            fileSize: file.size,
-            fileType: file.type,
-            transferType: "send",
-          });
-        }
-      } finally {
-        pumping = false;
+  /**
+   * Cancels an active transfer (before or while it is in progress) and
+   * notifies the peer so their side stops too.
+   */
+  const cancelTransfer = useCallback(
+    (id) => {
+      // Outbound: notify peer, then abort the send pipeline
+      if (activeIdRef.current === id && abortControllerRef.current) {
+        log.log("Cancelling outgoing transfer");
+        sendDataViaWebRTC(JSON.stringify({ type: "cancel" })).catch(() => {});
+        clearTransferTimeout();
+        updateTransfer(id, { status: "cancelled" });
+        abortControllerRef.current.abort(new Error("Cancelled by user"));
+        return;
       }
-    };
-
-    await pump();
-  };
-
-  const sendSecuredFile = async () => {
-    if (!selectedFile) return;
-
-    if (!isDataChannelOpen()) {
-      log.error("Data channel not open, cannot send");
-      setTransferFailed(true);
-      return;
-    }
-
-    log.log(
-      "Starting send:",
-      selectedFile.name,
-      `${(selectedFile.size / 1024 / 1024).toFixed(1)}MB`,
-    );
-    cleanup();
-    const controller = new AbortController();
-    abortControllerRef.current = controller;
-
-    setIsTransferring(true);
-    setTransferProgress(0);
-    setTransferComplete(false);
-    setTransferFailed(false);
-    startTimeRef.current = Date.now();
-    setTransferSpeed(0);
-    resetTransferTimeout();
-
-    const maxMsgSize = getMaxMessageSize?.() || DEFAULT_CHUNK_SIZE;
-    const chunkSize =
-      maxMsgSize > 9
-        ? Math.min(maxMsgSize - 9, MAX_CHUNK_SIZE)
-        : DEFAULT_CHUNK_SIZE;
-    const totalChunks = Math.ceil(selectedFile.size / chunkSize);
-    log.log(`Chunk config: size=${chunkSize}B, total=${totalChunks}, maxMsgSize=${maxMsgSize}`);
-
-    try {
-      await sendDataViaWebRTC(
-        JSON.stringify({
-          type: "metadata",
-          fileName: selectedFile.name,
-          fileSize: selectedFile.size,
-          fileType: selectedFile.type,
-          totalChunks,
-        }),
-        { signal: controller.signal, timeoutMs: TRANSFER_TIMEOUT_MS },
-      );
-    } catch {
-      if (!controller.signal.aborted) {
-        setTransferFailed(true);
-        setIsTransferring(false);
-        setTransferSpeed(0);
-        cleanup();
+      // Inbound: stop assembling, notify peer so they stop pumping chunks
+      if (assemblerRef.current.id === id) {
+        log.log(
+          `Cancelling incoming transfer "${assemblerRef.current.meta?.name}"`,
+        );
+        sendDataViaWebRTC(JSON.stringify({ type: "cancel" })).catch(() => {});
+        assemblerRef.current.reset();
+        clearTransferTimeout();
+        updateTransfer(id, { status: "cancelled" });
       }
-      return;
-    }
+    },
+    [sendDataViaWebRTC, updateTransfer],
+  );
 
-    const threshold = getPreloadThreshold();
-    let fileBuffer = null;
-    if (selectedFile.size <= threshold) {
-      log.log(
-        `[PRELOAD] ${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(1)}MB) <= ${(threshold / 1024 / 1024).toFixed(0)}MB threshold — preloading into memory`,
-      );
-      fileBuffer = await selectedFile.arrayBuffer();
-    } else {
-      log.log(
-        `[PRELOAD] ${selectedFile.name} (${(selectedFile.size / 1024 / 1024).toFixed(1)}MB) > ${(threshold / 1024 / 1024).toFixed(0)}MB threshold — streaming from disk`,
-      );
-    }
-
-    await pumpChunks(selectedFile, totalChunks, chunkSize, controller, fileBuffer);
-  };
-
-  const cancelTransfer = useCallback(() => {
-    abortControllerRef.current?.abort();
-    clearTransferTimeout();
-    setIsTransferring(false);
-    setTransferProgress(0);
-    setTransferSpeed(0);
-    setTransferFailed(false);
-    setTransferComplete(false);
-    cleanup();
-  }, [cleanup]);
-
-  const retryTransfer = useCallback(() => {
-    setTransferFailed(false);
-    setTransferProgress(0);
-    setTransferComplete(false);
-    setTransferSpeed(0);
-    sendRetryCount.current = 0;
-    setTimeout(() => sendSecuredFile(), 100);
+  const downloadFile = useCallback((id) => {
+    const t = transfersRef.current.find((x) => x.id === id);
+    if (t?.blob) downloadBlob(t.blob, t.name);
   }, []);
-
-  const clearFile = useCallback(() => {
-    abortControllerRef.current?.abort();
-    clearTransferTimeout();
-    setSelectedFile(null);
-    setIncomingFile(null);
-    incomingFileRef.current = null;
-    setTransferProgress(0);
-    setIsTransferring(false);
-    setTransferComplete(false);
-    setTransferFailed(false);
-    setReceivedBlob(null);
-    setTransferSpeed(0);
-    receivedChunksRef.current = [];
-    startTimeRef.current = null;
-    sendRetryCount.current = 0;
-  }, []);
-
-  const downloadFile = useCallback(() => {
-    if (receivedBlob && incomingFile) {
-      const url = URL.createObjectURL(receivedBlob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = incomingFile.name;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      clearFile();
-    }
-  }, [receivedBlob, incomingFile, clearFile]);
 
   return {
-    selectedFile,
-    setSelectedFile,
-    transferProgress,
-    isTransferring,
-    incomingFile,
-    transferComplete,
-    transferFailed,
-    transferSpeed,
-    sendSecuredFile,
-    cancelTransfer,
-    retryTransfer,
+    transfers,
+    sendFile,
     downloadFile,
-    clearFile,
+    cancelTransfer,
   };
 }
 

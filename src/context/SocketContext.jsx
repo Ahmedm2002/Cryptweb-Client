@@ -1,22 +1,21 @@
+/* eslint-disable react-refresh/only-export-components -- context + provider belong together */
 import {
   createContext,
-  useEffect,
   useState,
   useRef,
+  useCallback,
+  useEffect,
 } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { RTCPeer } from "../webrtc/peer.js";
 import { SOCKET_EVENTS } from "../socket/socket.events.js";
 import { socket } from "../socket/socket.js";
-import {
-  emitRegisterUser,
-  emitConnectionRequest,
-  emitConnectionResponse,
-  emitUsersConnected,
-  emitNetworkUsers,
-  emitDisconnectIntentional,
-} from "../socket/socket.handlers.js";
 import createLogger from "../utils/logger/devLogger.js";
+import { useConnectionManager } from "../hooks/useConnectionManager.js";
+import { useNetworkUsers } from "../hooks/useNetworkUsers.js";
+import { useChatMessages } from "../hooks/useChatMessages.js";
+import { useCallManager } from "../hooks/useCallManager.js";
+import { useDataChannelApi } from "../webrtc/dataChannelApi.js";
 
 const log = createLogger("Socket");
 
@@ -24,379 +23,189 @@ export const SocketContext = createContext(null);
 
 export const SocketProvider = ({ children }) => {
   const { user } = useAuth();
-  const [isConnectedWithServer, setIsConnectedWithServer] = useState(
-    socket.connected,
-  );
-  const [friendStatus, setFriendStatus] = useState(null);
-  const [incomingRequest, setIncomingRequest] = useState(null);
-  const [isInitiator, setIsInitiator] = useState(false);
-  const [isConnectedWithFriend, setIsConnectedWithFriend] = useState(false);
-  const [connectionError, setConnectionError] = useState(null);
-  const [connectedFriend, setConnectedFriend] = useState(null);
-  const [peerDisconnected, setPeerDisconnected] = useState(null);
-  const [peerEnded, setPeerEnded] = useState(null);
-  const [connectionPhase, setConnectionPhase] = useState(null);
-  const [connectingTo, setConnectingTo] = useState(null);
-  const [networkUsers, setNetworkUsers] = useState([]);
   const [isTransferring, setIsTransferring] = useState(false);
+
   const peerRef = useRef(null);
-  const pendingFriendInfo = useRef(null);
-  const isInitiatorRef = useRef(false);
   const dataChannelCallbackRef = useRef(null);
-  const socketDisconnectTimerRef = useRef(null);
+  const pendingOfferRef = useRef(null);
+  const connectedFriendRef = useRef(null);
 
-  useEffect(() => {
-    if (!user) return;
+  const getUserEmail = useCallback(() => user?.email, [user]);
+  const getPeerEmail = useCallback(
+    () => connectedFriendRef.current?.email,
+    [connectedFriendRef],
+  );
 
-    function handleConnect() {
-      if (socketDisconnectTimerRef.current) {
-        clearTimeout(socketDisconnectTimerRef.current);
-        socketDisconnectTimerRef.current = null;
-        setConnectionError(null);
-      }
-      setIsConnectedWithServer(true);
-      emitRegisterUser(user);
-    }
+  // --- data channel routing & api --------------------------------------
+  const incomingChatHandlerRef = useRef(null);
 
-    function handleDisconnect() {
-      setIsConnectedWithServer(false);
-      setConnectionError("Disconnected from server. Reconnecting...");
-
-      socketDisconnectTimerRef.current = setTimeout(() => {
-        socketDisconnectTimerRef.current = null;
-        setFriendStatus(null);
-        setIncomingRequest(null);
-        setIsConnectedWithFriend(false);
-        setIsInitiator(false);
-        isInitiatorRef.current = false;
-        setConnectedFriend(null);
-        setConnectionPhase(null);
-        setConnectingTo(null);
-        if (peerRef.current) {
-          peerRef.current.close();
-          peerRef.current = null;
+  const routeIncomingData = useCallback((data) => {
+    if (typeof data === "string") {
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed?.type === "chat") {
+          incomingChatHandlerRef.current?.(parsed);
+          return;
         }
-        setConnectionError("Connection lost. Please refresh the page.");
-      }, 30000);
-    }
-
-    socket.on(SOCKET_EVENTS.CONNECT, handleConnect);
-    socket.on(SOCKET_EVENTS.DISCONNECT, handleDisconnect);
-    socket.on(SOCKET_EVENTS.CONNECTION_INCOMING, onIncomingRequest);
-    socket.on(SOCKET_EVENTS.CONNECTION_RESPONSE, onConnectionResponse);
-    socket.on(SOCKET_EVENTS.OFFER, onOffer);
-    socket.on(SOCKET_EVENTS.ANSWER, onAnswer);
-    socket.on(SOCKET_EVENTS.ICE_CANDIDATE, onIceCandidate);
-    socket.on(SOCKET_EVENTS.PEER_DISCONNECTED, onPeerDisconnected);
-    socket.on(SOCKET_EVENTS.PEER_ENDED, onPeerEnded);
-    socket.on(SOCKET_EVENTS.NETWORK_USERS, onNetworkUsers);
-    socket.on(SOCKET_EVENTS.NETWORK_USER_JOINED, onNetworkUserJoined);
-    socket.on(SOCKET_EVENTS.NETWORK_USER_LEFT, onNetworkUserLeft);
-
-    if (!socket.connected) {
-      socket.connect();
-    } else {
-      handleConnect();
-    }
-
-    return () => {
-      if (socketDisconnectTimerRef.current) {
-        clearTimeout(socketDisconnectTimerRef.current);
-        socketDisconnectTimerRef.current = null;
+      } catch {
+        // not JSON — file transfer pipeline
       }
-      socket.off(SOCKET_EVENTS.CONNECT, handleConnect);
-      socket.off(SOCKET_EVENTS.DISCONNECT, handleDisconnect);
-      socket.off(SOCKET_EVENTS.CONNECTION_INCOMING, onIncomingRequest);
-      socket.off(SOCKET_EVENTS.CONNECTION_RESPONSE, onConnectionResponse);
-      socket.off(SOCKET_EVENTS.OFFER, onOffer);
-      socket.off(SOCKET_EVENTS.ANSWER, onAnswer);
-      socket.off(SOCKET_EVENTS.ICE_CANDIDATE, onIceCandidate);
-      socket.off(SOCKET_EVENTS.PEER_DISCONNECTED, onPeerDisconnected);
-      socket.off(SOCKET_EVENTS.PEER_ENDED, onPeerEnded);
-      socket.off(SOCKET_EVENTS.NETWORK_USERS, onNetworkUsers);
-      socket.off(SOCKET_EVENTS.NETWORK_USER_JOINED, onNetworkUserJoined);
-      socket.off(SOCKET_EVENTS.NETWORK_USER_LEFT, onNetworkUserLeft);
-      if (peerRef.current) {
-        peerRef.current.close();
-        peerRef.current = null;
-      }
-    };
-  }, [user]);
-
-  function onIncomingRequest(data) {
-    setIsInitiator(false);
-    isInitiatorRef.current = false;
-    setIncomingRequest(data);
-    pendingFriendInfo.current = {
-      email: data.from,
-      name: data.fromName || data.from,
-    };
-  }
-
-  function updateFriendsStatus(data) {
-    setIsInitiator(true);
-    isInitiatorRef.current = true;
-    if (!data) {
-      setFriendStatus(null);
-      return;
     }
-    pendingFriendInfo.current = {
-      email: data.email || data.data?.email,
-      name: data.data?.name || data.email || data.data?.email,
-    };
-    if (data?.data?.isOnline || data?.isOnline) {
-      setFriendStatus(data);
-      setConnectionError(null);
-      setConnectionPhase("requesting");
-      setConnectingTo(data.data?.name || data.email || data.data?.email);
-      const friendEmail = data.email || data.data?.email;
-      emitConnectionRequest(user.email, friendEmail);
-    } else {
-      setFriendStatus(null);
-    }
-  }
+    dataChannelCallbackRef.current?.(data);
+  }, []);
 
-  function respondToRequest(fromEmail, accepted) {
-    emitConnectionResponse(user.email, fromEmail, accepted);
-    setIncomingRequest(null);
-    if (accepted) {
-      setConnectionError(null);
-      setConnectionPhase("negotiating");
-      setConnectingTo(pendingFriendInfo.current?.name || fromEmail);
-    }
-  }
+  const channelApi = useDataChannelApi(
+    peerRef,
+    dataChannelCallbackRef,
+    routeIncomingData,
+  );
 
-  function onPeerConnected() {
-    setIsConnectedWithFriend(true);
-    setConnectionPhase(null);
-    setConnectingTo(null);
-    if (pendingFriendInfo.current) {
-      setConnectedFriend({ ...pendingFriendInfo.current });
-    }
-    const myEmail = user?.email;
-    const friendEmail = pendingFriendInfo.current?.email;
-    if (myEmail && friendEmail) {
-      const initiator = isInitiatorRef.current ? myEmail : friendEmail;
-      const receiver = isInitiatorRef.current ? friendEmail : myEmail;
-      emitUsersConnected(initiator, receiver);
-    }
-  }
+  const {
+    messages,
+    sendChatMessage,
+    handleIncomingChat,
+    clearMessages,
+    unreadCount,
+  } = useChatMessages(
+    channelApi.sendDataViaWebRTC,
+    channelApi.isDataChannelOpen,
+  );
+  useEffect(() => {
+    incomingChatHandlerRef.current = handleIncomingChat;
+  }, [handleIncomingChat]);
 
+  // --- calls & network ---------------------------------------------------
+  const network = useNetworkUsers();
+  const call = useCallManager({
+    peerRef,
+    pendingOfferRef,
+    getUserEmail,
+    getPeerEmail,
+    setConnectionError: (msg) => conn.setConnectionError(msg),
+  });
+
+  // --- WebRTC signaling ---------------------------------------------------
   function onConnectionStats(stats) {
-    log.log(
-      "ICE candidate pair:",
-      stats.candidateType,
-      "| relayed:",
-      stats.relayed,
-    );
+    log.log("ICE candidate pair:", stats.candidateType, "| relayed:", stats.relayed);
     log.log("SCTP maxMessageSize:", stats.maxMessageSize);
   }
 
-  function onPeerError(msg) {
-    setConnectionError(msg);
-    setIsConnectedWithFriend(false);
-    setConnectedFriend(null);
-    setConnectionPhase(null);
-    setConnectingTo(null);
+  function createPeer(remoteEmail) {
+    const peer = new RTCPeer(
+      socket,
+      user.email,
+      remoteEmail,
+      conn.onPeerConnected,
+      conn.onPeerError,
+      onConnectionStats,
+    );
+    peer._onDataChannelMessage = routeIncomingData;
+    peer.onRemoteStream = call.handleRemoteStream;
+    return peer;
   }
 
-  function closePeerConnection() {
-    if (peerRef.current) {
-      peerRef.current.close();
-      peerRef.current = null;
-    }
-  }
-
-  function onPeerEnded(data) {
-    log.log(`${data.name} (${data.email}) intentionally ended the connection`);
-    closePeerConnection();
-    setConnectedFriend(null);
-    setIsConnectedWithFriend(false);
-    setConnectionPhase(null);
-    setConnectingTo(null);
-    setPeerEnded(data);
-  }
-
-  function onPeerDisconnected(data) {
-    log.log(`${data.name} (${data.email}) disconnected unexpectedly`);
-    closePeerConnection();
-    setConnectedFriend(null);
-    setIsConnectedWithFriend(false);
-    setConnectionPhase(null);
-    setConnectingTo(null);
-    setPeerDisconnected(data);
-  }
-
-  function clearPeerDisconnected() {
-    setPeerDisconnected(null);
-  }
-
-  function clearPeerEnded() {
-    setPeerEnded(null);
-  }
-
-  function reconnectToServer() {
-    if (socketDisconnectTimerRef.current) {
-      clearTimeout(socketDisconnectTimerRef.current);
-      socketDisconnectTimerRef.current = null;
-    }
-    setConnectionError(null);
-    socket.disconnect();
-    socket.connect();
-  }
-
-  function onNetworkUsers(users) {
-    setNetworkUsers(users || []);
-  }
-
-  function onNetworkUserJoined(data) {
-    setNetworkUsers(data?.onlineUsers || []);
-  }
-
-  function onNetworkUserLeft(data) {
-    setNetworkUsers(data?.onlineUsers || []);
-  }
-
-  function requestNetworkUsers() {
-    emitNetworkUsers();
-  }
-
-  function onConnectionResponse(data) {
-    setIsInitiator(true);
-    isInitiatorRef.current = true;
-    if (data?.accepted) {
-      setConnectionError(null);
-      setConnectionPhase("negotiating");
-      peerRef.current = null;
-      peerRef.current = new RTCPeer(
-        socket,
-        user.email,
-        data.from,
-        onPeerConnected,
-        onPeerError,
-        onConnectionStats,
-      );
-      peerRef.current._onDataChannelMessage = dataChannelCallbackRef.current;
-      peerRef.current.init();
-      peerRef.current.createOffer();
-    } else {
-      log.log(`Connection rejected by ${data?.from}`);
-      setFriendStatus(null);
-      setIsInitiator(false);
-      isInitiatorRef.current = false;
-      setConnectionPhase(null);
-      setConnectingTo(null);
-      setConnectionError(
-        `Connection request was rejected by ${data?.from || "the recipient"}.`,
-      );
-    }
+  function startNegotiation(fromEmail) {
+    log.log(`Starting WebRTC negotiation with ${fromEmail} (initiator)`);
+    peerRef.current = null;
+    peerRef.current = createPeer(fromEmail);
+    peerRef.current.init();
+    peerRef.current.createOffer();
   }
 
   function onOffer(data) {
+    if (peerRef.current?.isConnected()) {
+      // Offer from a third party while in a session — never hijack it
+      if (data.from !== getPeerEmail()) {
+        log.warn(
+          `Ignoring offer from ${data.from} — already connected to ${getPeerEmail()}`,
+        );
+        return;
+      }
+      log.log(`Renegotiation offer received from ${data.from}`);
+      if (!peerRef.current.hasLocalMedia()) {
+        pendingOfferRef.current = data.offer;
+        return;
+      }
+      peerRef.current.handleOffer(data.offer);
+      return;
+    }
     if (peerRef.current) {
       peerRef.current.close();
     }
     peerRef.current = null;
-    peerRef.current = new RTCPeer(
-      socket,
-      user.email,
-      data.from,
-      onPeerConnected,
-      onPeerError,
-      onConnectionStats,
-    );
-    peerRef.current._onDataChannelMessage = dataChannelCallbackRef.current;
+    log.log(`Offer received from ${data.from}, creating answer (receiver)`);
+    peerRef.current = createPeer(data.from);
     peerRef.current.init();
     peerRef.current.handleOffer(data.offer);
   }
 
-  function onAnswer(data) {
-    log.log(`Answer received from ${data.from}`);
+  function teardownSession() {
+    closePeer();
+    call.resetCallState();
+    clearMessages();
+  }
+
+  function closePeer() {
     if (peerRef.current) {
-      peerRef.current.handleAnswer(data.answer);
+      peerRef.current.close();
+      peerRef.current = null;
     }
   }
 
-  function onIceCandidate(data) {
-    if (peerRef.current) {
-      peerRef.current.handleIceCandidate(data.candidate);
-    }
-  }
+  const conn = useConnectionManager({
+    user,
+    peerRef,
+    getIsTransferring: () => isTransferring,
+    teardownSession,
+    startNegotiation,
+    extraHandlers: {
+      [SOCKET_EVENTS.OFFER]: onOffer,
+      [SOCKET_EVENTS.ANSWER]: (data) => {
+        log.log(`Answer received from ${data.from}`);
+        peerRef.current?.handleAnswer(data.answer);
+      },
+      [SOCKET_EVENTS.ICE_CANDIDATE]: (data) =>
+        peerRef.current?.handleIceCandidate(data.candidate),
+      [SOCKET_EVENTS.CALL_INCOMING]: call.onIncomingCall,
+      [SOCKET_EVENTS.CALL_RESPONSE]: call.onCallResponse,
+      [SOCKET_EVENTS.CALL_ENDED]: call.onCallEnded,
+      [SOCKET_EVENTS.NETWORK_USERS]: network.onNetworkUsers,
+      [SOCKET_EVENTS.NETWORK_USER_JOINED]: network.onNetworkUserJoined,
+      [SOCKET_EVENTS.NETWORK_USER_LEFT]: network.onNetworkUserLeft,
+    },
+  });
 
-  function subscribeToDataChannel(callback) {
-    dataChannelCallbackRef.current = callback;
-    if (peerRef.current) {
-      peerRef.current._onDataChannelMessage = callback;
-    }
-  }
-
-  function isDataChannelOpen() {
-    return peerRef.current?.isDataChannelOpen() ?? false;
-  }
-
-  function getDataChannel() {
-    return peerRef.current?.getDataChannel() ?? null;
-  }
-
-  function getMaxMessageSize() {
-    return peerRef.current?.getMaxMessageSize() ?? 65536;
-  }
-
-  function sendDataViaWebRTC(data, options) {
-    if (peerRef.current) {
-      return peerRef.current.sendData(data, options);
-    }
-    return Promise.reject(new Error("No peer connection"));
-  }
-
-  function disconnectFromFriend() {
-    if (isTransferring) {
-      setConnectionError("Cannot disconnect while a file transfer is in progress.");
-      return;
-    }
-    log.log(`Disconnecting from friend`);
-    emitDisconnectIntentional(user?.email);
-    closePeerConnection();
-    setIsConnectedWithFriend(false);
-    setFriendStatus(null);
-    setIsInitiator(false);
-    isInitiatorRef.current = false;
-    setConnectionError(null);
-    setConnectedFriend(null);
-    setConnectionPhase(null);
-    setConnectingTo(null);
-  }
+  useEffect(() => {
+    connectedFriendRef.current = conn.connectedFriend;
+  }, [conn.connectedFriend]);
 
   return (
     <SocketContext.Provider
       value={{
-        isConnectedWithServer,
-        isConnectedWithFriend,
-        updateFriendsStatus,
-        friendStatus,
-        setIsInitiator,
-        incomingRequest,
-        respondToRequest,
-        subscribeToDataChannel,
-        sendDataViaWebRTC,
-        isDataChannelOpen,
-        getDataChannel,
-        getMaxMessageSize,
-        connectionError,
-        setConnectionError,
-        disconnectFromFriend,
-        connectedFriend,
-        peerDisconnected,
-        clearPeerDisconnected,
-        peerEnded,
-        clearPeerEnded,
-        connectionPhase,
-        connectingTo,
-        networkUsers,
-        requestNetworkUsers,
+        ...conn,
+        networkUsers: network.networkUsers,
+        requestNetworkUsers: network.requestNetworkUsers,
         isTransferring,
         setIsTransferring,
-        reconnectToServer,
+        subscribeToDataChannel: channelApi.subscribeToDataChannel,
+        sendDataViaWebRTC: channelApi.sendDataViaWebRTC,
+        isDataChannelOpen: channelApi.isDataChannelOpen,
+        getDataChannel: channelApi.getDataChannel,
+        getMaxMessageSize: channelApi.getMaxMessageSize,
+        incomingCall: call.incomingCall,
+        activeCall: call.activeCall,
+        callStatus: call.callStatus,
+        localStream: call.localStream,
+        remoteStream: call.remoteStream,
+        startCall: call.startCall,
+        answerCall: call.answerCall,
+        rejectCall: call.rejectCall,
+        endCall: call.endCall,
+        toggleLocalAudio: call.toggleLocalAudio,
+        toggleLocalVideo: call.toggleLocalVideo,
+        messages,
+        sendChatMessage,
+        unreadCount,
       }}
     >
       {children}

@@ -4,9 +4,9 @@ import { Link } from "react-router-dom";
 import { Button } from "../components/commons/Button.jsx";
 
 export const About = () => {
+  useDocumentTitle("About");
   return (
     <div className="relative min-h-screen bg-[#FAFBFD] flex flex-col text-gray-900">
-      <useDocumentTitle title="About" />
       <main className="relative z-10 flex-1">
         {/* Header */}
         <section className="bg-section-octagon overflow-hidden pt-20 pb-16 sm:pt-28 sm:pb-20 border-b border-gray-100">
