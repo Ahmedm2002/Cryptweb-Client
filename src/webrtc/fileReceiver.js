@@ -57,7 +57,14 @@ export class IncomingFileAssembler {
    * @returns {{ ok: boolean, blob?: Blob }}
    */
   finalize(msg) {
-    if (!this.meta || this.chunks.length !== msg.totalChunks) {
+    if (!this.meta) {
+      log.error("Complete signal received but no active transfer — ignoring");
+      return { ok: false };
+    }
+    if (this.chunks.length !== msg.totalChunks) {
+      log.error(
+        `Chunk count mismatch for "${this.meta.name}": received ${this.chunks.length}, expected ${msg.totalChunks}`,
+      );
       return { ok: false };
     }
     const blob = new Blob(this.chunks, {
@@ -65,10 +72,13 @@ export class IncomingFileAssembler {
     });
     if (msg.fileSize && blob.size !== msg.fileSize) {
       log.error(
-        `File size mismatch: expected ${msg.fileSize}, got ${blob.size}`,
+        `Size mismatch for "${this.meta.name}": expected ${msg.fileSize}B, got ${blob.size}B (Δ${blob.size - msg.fileSize})`,
       );
       return { ok: false };
     }
+    log.log(
+      `Assembled "${this.meta.name}" ✓ (${this.chunks.length}/${msg.totalChunks} chunks, ${(blob.size / 1048576).toFixed(2)}MB)`,
+    );
     return { ok: true, blob };
   }
 }

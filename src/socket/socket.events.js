@@ -1,5 +1,6 @@
 const SOCKET_EVENTS = {
   USER_REGISTER: "user:register",
+  REGISTRATION_ERROR: "registration-error",
   CONNECTION_REQUEST: "connection:request",
   CONNECTION_INCOMING: "connection:incoming",
   ANSWER: "answer",
@@ -19,6 +20,13 @@ const SOCKET_EVENTS = {
   NETWORK_USERS: "network:users",
   NETWORK_USER_JOINED: "network:user-joined",
   NETWORK_USER_LEFT: "network:user-left",
+  STATUS_UPDATE: "status-update",
+  // Messaging system
+  MESSAGE_SEND: "message:send",
+  MESSAGE_RECEIVE: "message:receive",
+  MESSAGE_SEND_ACK: "message:send-ack",
+  // Notifications
+  NOTIFICATION_NEW: "notification:new",
 };
 
 export { SOCKET_EVENTS };

@@ -191,3 +191,79 @@ html {
     animation: none;
   }
 }
+
+/* --- WhatsApp-style animations ------------------------------------------- */
+
+/* Message slide in */
+@keyframes cw-msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+.cw-msg-in {
+  animation: cw-msg-in 0.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Sidebar slide */
+@keyframes cw-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.cw-slide-in-left {
+  animation: cw-slide-in-left 0.25s ease-out forwards;
+}
+
+/* Panel fade */
+@keyframes cw-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.cw-fade-in {
+  animation: cw-fade-in 0.2s ease-out forwards;
+}
+
+/* Notification badge bounce */
+@keyframes cw-badge-pop {
+  0% { transform: scale(0); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.cw-badge-pop {
+  animation: cw-badge-pop 0.3s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Typing indicator */
+@keyframes cw-typing-bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+}
+
+/* Status pulse for online indicator */
+@keyframes cw-online-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(22, 163, 74, 0); }
+}
+.cw-online-pulse {
+  animation: cw-online-pulse 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cw-msg-in,
+  .cw-slide-in-left,
+  .cw-fade-in,
+  .cw-badge-pop,
+  .cw-online-pulse {
+    animation: none;
+  }
+}

@@ -5,11 +5,12 @@ export function SecurityHero() {
     <section className="bg-section-octagon overflow-hidden pt-20 pb-16 sm:pt-28 sm:pb-20 border-b border-gray-100">
       <div className="max-w-2xl mx-auto px-4 text-center">
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-4">
-          Your files stay under your control.
+          Your data stays under your control.
         </h1>
         <p className="text-gray-500 leading-relaxed">
           We built Cryptweb so you never have to trust us with your data. Your
-          files are encrypted, transferred directly, and never stored.
+          files, messages, and calls are encrypted end-to-end, transferred
+          directly between devices, and never stored.
         </p>
       </div>
     </section>
@@ -18,9 +19,10 @@ export function SecurityHero() {
 
 const PRIVACY_POINTS = [
   "Files are encrypted before they leave your device",
+  "Messages and call streams never touch a server",
   "Only the recipient can decrypt and view the files",
-  "Nothing is stored on our servers after the transfer ends",
-  "If either party goes offline, the transfer stops — no copies remain",
+  "Nothing is stored on our servers after the session ends",
+  "If either party goes offline, the session stops — no copies remain",
 ];
 
 function TunnelDiagram() {
@@ -73,9 +75,9 @@ export function HowFilesStayPrivate() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div>
             <p className="text-gray-500 leading-relaxed mb-6">
-              When you send a file through Cryptweb, it travels directly from
-              your device to the recipient's device. We never see, store, or
-              have access to your files at any point during the transfer.
+              When you share through Cryptweb — files, messages, or a call —
+              everything travels directly from your device to the recipient's.
+              We never see, store, or have access to your data at any point.
             </p>
             <ul className="space-y-3">
               {PRIVACY_POINTS.map((item, i) => (

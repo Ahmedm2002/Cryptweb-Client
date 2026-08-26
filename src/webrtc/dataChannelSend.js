@@ -15,14 +15,26 @@ export function openDataChannel(peerConnection) {
 
 export function wireDataChannel(dataChannel, remotePeerEmail, onMessage) {
   dataChannel.bufferedAmountLowThreshold = BUFFER_LOW_THRESHOLD;
+  // Binary chunks must arrive as ArrayBuffer for the file protocol
+  dataChannel.binaryType = "arraybuffer";
+  let wireBinaryCount = 0;
 
   dataChannel.onopen = () => {
     log.log(
-      `Data channel open with ${remotePeerEmail} (maxMessageSize: ${dataChannel.maxMessageSize ?? "n/a"})`,
+      `[wire] OPEN with ${remotePeerEmail} | binaryType=${dataChannel.binaryType} | maxMessageSize=${dataChannel.maxMessageSize ?? "n/a"} | bufferedAmountLowThreshold=${dataChannel.bufferedAmountLowThreshold}`,
     );
   };
 
   dataChannel.onmessage = (event) => {
+    if (typeof event.data === "string") {
+      log.log(`[wire] ← TEXT ${event.data.length}B: ${event.data.slice(0, 120)}`);
+    } else {
+      const size = event.data?.byteLength ?? event.data?.size ?? "?";
+      wireBinaryCount += 1;
+      if (wireBinaryCount === 1 || wireBinaryCount % 25 === 0) {
+        log.log(`[wire] ← BINARY #${wireBinaryCount} ${size}B (${typeof event.data})`);
+      }
+    }
     onMessage?.(event.data);
   };
 
@@ -31,7 +43,7 @@ export function wireDataChannel(dataChannel, remotePeerEmail, onMessage) {
   };
 
   dataChannel.onclose = () => {
-    log.log(`Data channel closed with ${remotePeerEmail}`);
+    log.log(`Data channel closed with ${remotePeerEmail} (received ${wireBinaryCount} binary msgs total)`);
   };
 }
 
@@ -40,6 +52,9 @@ export function wireDataChannel(dataChannel, remotePeerEmail, onMessage) {
  * Resolves when sent; rejects on timeout, abort, or channel closure.
  */
 export function sendDataReliably(dataChannel, data, { signal, timeoutMs = SEND_TIMEOUT_MS } = {}) {
+  const isText = typeof data === "string";
+  const preview = isText ? data.slice(0, 120) : `${data.byteLength}B binary`;
+  if (isText) log.log(`sendDataReliably → TEXT ${preview}`);
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       return reject(new Error("Transfer aborted"));
@@ -50,6 +65,7 @@ export function sendDataReliably(dataChannel, data, { signal, timeoutMs = SEND_T
     }
 
     let drainHandler = null;
+    let pollTimer = null;
     let settled = false;
 
     const timer = setTimeout(() => {
@@ -73,6 +89,10 @@ export function sendDataReliably(dataChannel, data, { signal, timeoutMs = SEND_T
 
     const cleanup = () => {
       clearTimeout(timer);
+      if (pollTimer != null) {
+        clearInterval(pollTimer);
+        pollTimer = null;
+      }
       signal?.removeEventListener("abort", onAbort);
       if (drainHandler && dataChannel) {
         dataChannel.removeEventListener("bufferedamountlow", drainHandler);
@@ -101,21 +121,51 @@ export function sendDataReliably(dataChannel, data, { signal, timeoutMs = SEND_T
         dataChannel.bufferedAmount >
         dataChannel.bufferedAmountLowThreshold
       ) {
-        drainHandler = () => {
-          drainHandler = null;
-          attempt();
-        };
-        dataChannel.addEventListener("bufferedamountlow", drainHandler, {
-          once: true,
-        });
+        // Buffer still draining. The bufferedamountlow event may have
+        // already fired before we attached (fast drain race), so back
+        // it up with a short poll instead of trusting one event.
+        if (isText) {
+          log.log(
+            `sendDataReliably → waiting for drain: bufferedAmount=${dataChannel.bufferedAmount} > threshold=${dataChannel.bufferedAmountLowThreshold}`,
+          );
+        }
+        if (!drainHandler) {
+          drainHandler = () => {
+            drainHandler = null;
+            attempt();
+          };
+          dataChannel.addEventListener("bufferedamountlow", drainHandler, {
+            once: true,
+          });
+        }
+        if (pollTimer == null) {
+          pollTimer = setInterval(() => {
+            if (settled) return;
+            if (
+              !dataChannel ||
+              dataChannel.readyState !== "open" ||
+              dataChannel.bufferedAmount <=
+                dataChannel.bufferedAmountLowThreshold
+            ) {
+              if (pollTimer != null) {
+                clearInterval(pollTimer);
+                pollTimer = null;
+              }
+              attempt();
+            }
+          }, 100);
+        }
         return;
       }
 
       try {
+        if (isText) log.log(`sendDataReliably → dc.send() TEXT now (bufferedAmount=${dataChannel.bufferedAmount})`);
         dataChannel.send(data);
         settle(resolve);
+        if (isText) log.log(`sendDataReliably → TEXT sent ✓`);
       } catch (err) {
         settle(reject, err);
+        if (isText) log.error(`sendDataReliably → TEXT send FAILED:`, err);
       }
     };
 

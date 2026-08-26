@@ -56,7 +56,6 @@ function emitWebRTCAnswer(fromEmail, toEmail, answer) {
 
 function emitIceCandidate(fromEmail, toEmail, candidate) {
   if (!socket) return;
-  log.log(`Emitting ${SOCKET_EVENTS.ICE_CANDIDATE} [${candidate.type || "unknown"}] to ${toEmail}`);
   socket.emit(SOCKET_EVENTS.ICE_CANDIDATE, {
     from: fromEmail,
     to: toEmail,

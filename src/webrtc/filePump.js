@@ -5,6 +5,7 @@ const log = createLogger("FileTransfer");
 export const DEFAULT_CHUNK_SIZE = 65536;
 export const MAX_CHUNK_SIZE = 262144;
 export const BUFFER_LOW_THRESHOLD = 262144;
+export const DRAIN_POLL_MS = 100;
 export const PROGRESS_THROTTLE_MS = 80;
 export const SEND_TIMEOUT_MS = 60000;
 
@@ -41,6 +42,7 @@ export async function sendFilePipeline({
   const abortSignal = controller.signal;
   const chunkSize = computeChunkSize(maxMsgSize ?? DEFAULT_CHUNK_SIZE);
   const totalChunks = Math.ceil(file.size / chunkSize);
+  const pipelineStartedAt = performance.now();
   log.log(
     `Send started: "${file.name}" (${(file.size / 1048576).toFixed(2)}MB), chunk=${chunkSize}B, chunks=${totalChunks}`,
   );
@@ -56,14 +58,26 @@ export async function sendFilePipeline({
       }),
       { signal: abortSignal, timeoutMs: SEND_TIMEOUT_MS },
     );
-  } catch {
+    log.log("Metadata delivered");
+  } catch (err) {
+    log.error(`Metadata send failed: ${err.message}`);
     return abortSignal.aborted ? "aborted" : "failed";
   }
 
   // Small files are preloaded into memory; larger ones stream from disk.
   let fileBuffer = null;
-  if (file.size <= getPreloadThreshold()) {
+  const preloadThreshold = getPreloadThreshold();
+  if (file.size <= preloadThreshold) {
+    log.log(
+      `Preloading ${(file.size / 1048576).toFixed(1)}MB into memory (threshold ${(preloadThreshold / 1048576).toFixed(0)}MB)`,
+    );
+    const t0 = performance.now();
     fileBuffer = await file.arrayBuffer();
+    log.log(`Preloaded in ${((performance.now() - t0) / 1000).toFixed(2)}s`);
+  } else {
+    log.log(
+      `File exceeds preload threshold — streaming from disk (${(preloadThreshold / 1048576).toFixed(0)}MB limit)`,
+    );
   }
 
   const result = await pumpChunks({
@@ -87,9 +101,13 @@ export async function sendFilePipeline({
       JSON.stringify({ type: "complete", totalChunks, fileSize: file.size }),
       { signal: abortSignal, timeoutMs: SEND_TIMEOUT_MS },
     );
-  } catch {
+    const secs = (performance.now() - pipelineStartedAt) / 1000;
+    log.log(
+      `Completion signal delivered — total ${secs.toFixed(1)}s (${((file.size / 1048576) / Math.max(secs, 0.01)).toFixed(2)}MB/s avg)`,
+    );
+  } catch (err) {
     if (!abortSignal.aborted) {
-      log.error("Failed to send completion signal");
+      log.error(`Failed to send completion signal: ${err.message}`);
     }
   }
 
@@ -98,6 +116,8 @@ export async function sendFilePipeline({
 
 /**
  * Streams a file over the data channel, paced by bufferedamountlow events.
+ * Fully self-driving: pauses internally when the send buffer fills and
+ * resumes automatically once it drains below the low-water mark.
  *
  * @returns {"complete" | "aborted" | "failed"}
  */
@@ -123,86 +143,120 @@ export async function pumpChunks({
 
   let chunkId = 0;
   let offset = 0;
-  let pumping = false;
   let lastRenderTime = 0;
+  let lastLoggedChunk = 0;
+  const logStride = Math.max(1, Math.floor(totalChunks / 20)); // ~5% steps
+  const startedAt = performance.now();
 
   dc.bufferedAmountLowThreshold = BUFFER_LOW_THRESHOLD;
 
-  const onDrain = () => {
-    if (!pumping && !abortSignal.aborted) {
-      pump();
-    }
-  };
-  dc.addEventListener("bufferedamountlow", onDrain);
+  /** Resolves when bufferedAmount drops to the low-water mark. */
+  const waitForDrain = () =>
+    new Promise((resolve, reject) => {
+      if (dc.readyState !== "open")
+        return reject(new Error("Data channel closed"));
+      if (abortSignal.aborted) return reject(new Error("Transfer aborted"));
+      // The event may have fired before we attached — check first.
+      if (dc.bufferedAmount <= BUFFER_LOW_THRESHOLD) return resolve();
 
-  const pump = async () => {
-    if (pumping || abortSignal.aborted) return;
-    pumping = true;
+      let pollTimer = null;
+      const cleanup = () => {
+        dc.removeEventListener("bufferedamountlow", onLow);
+        clearInterval(pollTimer);
+        pollTimer = null;
+      };
+      const finish = (fn, value) => {
+        cleanup();
+        fn(value);
+      };
+      const onLow = () => {
+        if (dc.bufferedAmount > BUFFER_LOW_THRESHOLD) return; // spurious
+        finish(resolve);
+      };
+      dc.addEventListener("bufferedamountlow", onLow);
+      // Backstop: covers missed events plus close/abort while waiting.
+      pollTimer = setInterval(() => {
+        if (!dc || dc.readyState !== "open") {
+          return finish(reject, new Error("Data channel closed"));
+        }
+        if (abortSignal.aborted) {
+          return finish(reject, new Error("Transfer aborted"));
+        }
+        if (dc.bufferedAmount <= BUFFER_LOW_THRESHOLD) finish(resolve);
+      }, DRAIN_POLL_MS);
+    });
 
-    try {
-      while (
-        offset < file.size &&
-        dc.bufferedAmount <= BUFFER_LOW_THRESHOLD
+  try {
+    while (offset < file.size) {
+      if (abortSignal.aborted) return "aborted";
+      if (dc.readyState !== "open") {
+        log.error("Pump aborted: data channel closed mid-transfer");
+        return "failed";
+      }
+
+      let len;
+      if (fileBuffer) {
+        len = Math.min(chunkSize, fileBuffer.byteLength - offset);
+        packetView.set(new Uint8Array(fileBuffer, offset, len), 9);
+      } else {
+        const slice = file.slice(offset, offset + chunkSize);
+        const ab = await slice.arrayBuffer();
+        len = ab.byteLength;
+        packetView.set(new Uint8Array(ab), 9);
+      }
+
+      packetHeader.setUint8(0, 0x01);
+      packetHeader.setUint32(1, chunkId, false);
+      packetHeader.setUint32(5, totalChunks, false);
+
+      try {
+        dc.send(packetView.subarray(0, 9 + len));
+      } catch (err) {
+        if (!abortSignal.aborted) {
+          log.error("Pump send error:", err.message);
+          onSendError?.();
+        }
+        return "failed";
+      }
+
+      chunkId++;
+      offset += chunkSize;
+      onChunkSent?.();
+
+      if (chunkId - lastLoggedChunk >= logStride || chunkId === totalChunks) {
+        lastLoggedChunk = chunkId;
+        const secs = (performance.now() - startedAt) / 1000;
+        const mbps = (offset / 1048576) / Math.max(secs, 0.01);
+        log.log(
+          `Chunk ${chunkId}/${totalChunks} (${Math.round((chunkId / totalChunks) * 100)}%) · buffer=${(dc.bufferedAmount / 1024).toFixed(0)}KB · ${secs.toFixed(1)}s · ${mbps.toFixed(2)}MB/s`,
+        );
+      }
+
+      const now = Date.now();
+      if (
+        now - lastRenderTime >= PROGRESS_THROTTLE_MS ||
+        chunkId === totalChunks
       ) {
-        if (abortSignal.aborted) break;
-
-        let len;
-        if (fileBuffer) {
-          len = Math.min(chunkSize, fileBuffer.byteLength - offset);
-          packetView.set(new Uint8Array(fileBuffer, offset, len), 9);
-        } else {
-          const slice = file.slice(offset, offset + chunkSize);
-          const ab = await slice.arrayBuffer();
-          len = ab.byteLength;
-          packetView.set(new Uint8Array(ab), 9);
-        }
-
-        packetHeader.setUint8(0, 0x01);
-        packetHeader.setUint32(1, chunkId, false);
-        packetHeader.setUint32(5, totalChunks, false);
-
-        try {
-          dc.send(packetView.subarray(0, 9 + len));
-        } catch (err) {
-          if (!abortSignal.aborted) {
-            log.error("Pump send error:", err.message);
-            onSendError?.();
-          }
-          dc.removeEventListener("bufferedamountlow", onDrain);
-          return "failed";
-        }
-
-        chunkId++;
-        offset += chunkSize;
-        onChunkSent?.();
-
-        const now = Date.now();
-        if (
-          now - lastRenderTime >= PROGRESS_THROTTLE_MS ||
-          chunkId === totalChunks
-        ) {
-          lastRenderTime = now;
-          onProgress?.(Math.round((chunkId / totalChunks) * 100));
-        }
+        lastRenderTime = now;
+        onProgress?.(Math.round((chunkId / totalChunks) * 100));
       }
 
-      if (abortSignal.aborted) {
-        dc.removeEventListener("bufferedamountlow", onDrain);
-        return "aborted";
+      // Buffer full — wait for it to drain, then keep pumping in this call.
+      if (offset < file.size && dc.bufferedAmount > BUFFER_LOW_THRESHOLD) {
+        await waitForDrain();
       }
-
-      if (offset >= file.size) {
-        dc.removeEventListener("bufferedamountlow", onDrain);
-        onProgress?.(100);
-        return "complete";
-      }
-
-      // Buffer full — pause until the next bufferedamountlow event
-      return "pending";
-    } finally {
-      pumping = false;
     }
-  };
+  } catch (err) {
+    if (!abortSignal.aborted) {
+      log.error(`Pump failed: ${err.message}`);
+      onSendError?.();
+    }
+    return abortSignal.aborted ? "aborted" : "failed";
+  }
 
-  return await pump();
+  onProgress?.(100);
+  log.log(
+    `Pump finished: all ${totalChunks}/${totalChunks} chunks handed to dc.send() (bufferedAmount=${(dc.bufferedAmount / 1024).toFixed(0)}KB)`,
+  );
+  return "complete";
 }

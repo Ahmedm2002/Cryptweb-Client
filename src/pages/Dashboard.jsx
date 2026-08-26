@@ -1,11 +1,11 @@
 import DashboardLayout from "../components/layout/DashboardLayout";
-import Home from "./Home";
+import WhatsAppHome from "../components/whatsapp/WhatsAppHome";
 function Dashboard({ children }) {
 
   return (
     <>
-      <DashboardLayout fullWidth={!children}>
-        {children || <Home />}
+      <DashboardLayout>
+        {children || <WhatsAppHome />}
       </DashboardLayout>
     </>
   );

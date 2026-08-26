@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "./Header";
 import { useAuth } from "../../hooks/useAuth";
 
-function DashboardLayout({ children, fullWidth = false }) {
+function DashboardLayout({ children }) {
   const [logoutConfirm, setLogoutConfirm] = useState(false);
   const { logout } = useAuth();
   const navigate = useNavigate();
@@ -15,10 +15,10 @@ function DashboardLayout({ children, fullWidth = false }) {
   };
 
   return (
-    <div className="min-h-screen bg-[#FAFBFD] flex flex-col text-gray-900 font-sans antialiased relative">
+    <div className="h-screen flex flex-col text-gray-900 font-sans antialiased relative">
       <Header onLogoutConfirm={() => setLogoutConfirm(true)} />
-      <main className="flex-1 overflow-y-auto relative z-10">
-        <div className={fullWidth ? "w-full" : "max-w-3xl mx-auto px-4 py-6"}>
+      <main className="flex-1 overflow-hidden relative z-10">
+        <div className="w-full h-full">
           {children}
         </div>
       </main>

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "../commons/Button.jsx";
+import Reveal from "./Reveal.jsx";
 import {
   Shield,
   Lightning,
@@ -9,16 +10,20 @@ import {
   ArrowRight,
   Check,
   Upload,
+  ChatText,
+  PhoneCall,
+  VideoCamera,
+  XCircle,
 } from "phosphor-react";
 
 const CONTROL_POINTS = [
   {
     title: "Encrypted in transit",
-    desc: "Files are encrypted before they leave your device.",
+    desc: "Files, messages, and call streams are encrypted before they leave your device.",
   },
   {
     title: "No cloud storage",
-    desc: "Nothing is saved on our servers after the transfer.",
+    desc: "Nothing is saved on our servers — ever.",
   },
   {
     title: "Both must be online",
@@ -26,7 +31,7 @@ const CONTROL_POINTS = [
   },
   {
     title: "You're in control",
-    desc: "Cancel anytime. Close the tab, and the transfer stops.",
+    desc: "Cancel any transfer mid-flight or end the session with one tap.",
   },
 ];
 
@@ -34,19 +39,20 @@ export function SecurityHighlight() {
   return (
     <section className="bg-section-white py-20 sm:py-24 border-b border-gray-100">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mx-auto text-center mb-12">
+        <Reveal className="max-w-2xl mx-auto text-center mb-12">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-4">
-            Your files stay under your control.
+            Everything stays under your control.
           </h2>
           <p className="text-gray-500 leading-relaxed">
             We built Cryptweb so you never have to trust us with your data.
-            Your files are encrypted, transferred directly, and never stored.
+            Files, messages, and calls are encrypted, transferred directly, and
+            never stored.
           </p>
-        </div>
+        </Reveal>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-4xl mx-auto">
           {CONTROL_POINTS.map((item, i) => (
-            <div key={i} className="text-center">
+            <Reveal key={i} delay={i * 80} className="text-center">
               <div className="w-10 h-10 rounded-full bg-[#fdf8f0] text-[#c78b4a] flex items-center justify-center mx-auto mb-3">
                 <Check size={18} weight="bold" />
               </div>
@@ -54,7 +60,7 @@ export function SecurityHighlight() {
                 {item.title}
               </h4>
               <p className="text-xs text-gray-500 leading-relaxed">{item.desc}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </div>
@@ -69,23 +75,35 @@ const BENEFITS = [
   },
   {
     icon: <Lock size={20} weight="bold" />,
-    desc: "End-to-end encryption from sender to receiver.",
+    desc: "End-to-end encryption for files, messages, and calls.",
   },
   {
     icon: <HardDrives size={20} weight="bold" />,
     desc: "No file size limits — share files of any size.",
   },
   {
+    icon: <ChatText size={20} weight="bold" />,
+    desc: "Built-in real-time chat that vanishes when the session ends.",
+  },
+  {
+    icon: <PhoneCall size={20} weight="bold" />,
+    desc: "Peer-to-peer audio calls without a single server in between.",
+  },
+  {
+    icon: <VideoCamera size={20} weight="bold" />,
+    desc: "HD video calls that run alongside active file transfers.",
+  },
+  {
     icon: <Globe size={20} />,
     desc: "Cross-platform support for Windows, macOS, Linux, Android, and iOS.",
   },
   {
-    icon: <Upload size={20} weight="bold" />,
-    desc: "Direct device-to-device transfers, no central servers.",
+    icon: <XCircle size={20} weight="bold" />,
+    desc: "Cancel any transfer mid-flight with one click — both sides stop instantly.",
   },
   {
     icon: <Shield size={20} weight="bold" />,
-    desc: "Reliable transfers with integrity verification and recovery.",
+    desc: "Reliable transfers with integrity verification and chunked delivery.",
   },
 ];
 
@@ -93,28 +111,27 @@ export function Benefits() {
   return (
     <section className="bg-section-white py-20 sm:py-24 border-b border-gray-100">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="max-w-2xl mb-12">
+        <Reveal className="max-w-2xl mb-12">
           <p className="text-xs font-semibold text-[#059669] uppercase tracking-wider mb-2">
             Benefits
           </p>
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">
-            Everything you need for secure file sharing.
+            Everything you need for private collaboration.
           </h2>
-        </div>
+        </Reveal>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {BENEFITS.map((benefit, i) => (
-            <div
-              key={i}
-              className="group bg-white rounded-2xl border border-gray-200 p-4 hover:-translate-y-1 hover:shadow-md transition-all duration-200 flex items-start gap-3"
-            >
-              <div className="w-9 h-9 rounded-lg bg-[#ecfdf5] text-[#059669] flex items-center justify-center shrink-0 mt-0.5">
-                {benefit.icon}
+            <Reveal key={i} delay={(i % 3) * 70}>
+              <div className="group h-full bg-white rounded-2xl border border-gray-200 p-4 hover:-translate-y-1 hover:shadow-md transition-all duration-200 flex items-start gap-3">
+                <div className="w-9 h-9 rounded-lg bg-[#ecfdf5] text-[#059669] flex items-center justify-center shrink-0 mt-0.5 group-hover:scale-110 transition-transform duration-200">
+                  {benefit.icon}
+                </div>
+                <p className="text-xs text-gray-500 leading-relaxed pt-1.5">
+                  {benefit.desc}
+                </p>
               </div>
-              <p className="text-xs text-gray-500 leading-relaxed pt-1.5">
-                {benefit.desc}
-              </p>
-            </div>
+            </Reveal>
           ))}
         </div>
 
@@ -141,25 +158,27 @@ export function ProductCta() {
   return (
     <section className="bg-section-octagon py-20 sm:py-24 border-b border-gray-100">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-4">
-          Ready to share files securely?
-        </h2>
-        <p className="text-gray-500 mb-8 max-w-md mx-auto">
-          Create a free account and start transferring files directly. No
-          credit card required.
-        </p>
-        <Link to="/signup">
-          <Button
-            variant="primary"
-            className="px-6 py-2.5 text-sm gap-2 group inline-flex items-center justify-center whitespace-nowrap"
-          >
-            Start Sharing
-            <ArrowRight
-              className="w-4 h-4 shrink-0 group-hover:translate-x-0.5 transition-transform"
-              weight="bold"
-            />
-          </Button>
-        </Link>
+        <Reveal>
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900 mb-4">
+            Ready to connect directly?
+          </h2>
+          <p className="text-gray-500 mb-8 max-w-md mx-auto">
+            Create a free account and start transferring files, chatting, and
+            calling — no credit card required.
+          </p>
+          <Link to="/signup">
+            <Button
+              variant="primary"
+              className="px-6 py-2.5 text-sm gap-2 group inline-flex items-center justify-center whitespace-nowrap"
+            >
+              Start Free
+              <ArrowRight
+                className="w-4 h-4 shrink-0 group-hover:translate-x-0.5 transition-transform"
+                weight="bold"
+              />
+            </Button>
+          </Link>
+        </Reveal>
       </div>
     </section>
   );

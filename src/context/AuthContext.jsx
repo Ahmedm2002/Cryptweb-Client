@@ -24,10 +24,10 @@ export const AuthProvider = ({ children }) => {
     return () => { cancelled = true; };
   }, []);
 
-  async function signup(name, email, password) {
+  async function signup(name, email, username, password) {
     setLoading(true);
     try {
-      const res = await api.post("/auth/signup", { name, email, password });
+      const res = await api.post("/auth/signup", { name, email, username, password });
       if (res && res.success) {
         setUser(res.data?.user || res.data);
       }

@@ -100,10 +100,10 @@ function Home() {
           <>
             <div className="text-center mb-1">
               <h2 className="text-lg font-semibold text-gray-900">
-                Secure File Transfer
+                Start a Secure Session
               </h2>
               <p className="text-sm text-gray-500 mt-0.5">
-                Enter your recipient's email to start
+                Files, chat &amp; calls — direct between devices
               </p>
             </div>
 
@@ -115,14 +115,15 @@ function Home() {
               </p>
               <p>
                 <span className="font-medium text-gray-700">2.</span> Wait for
-                them to accept your connection request
+                them to accept — an encrypted tunnel opens between you
               </p>
               <p>
-                <span className="font-medium text-gray-700">3.</span> Once
-                connected, drag a file or click to browse and send it securely
+                <span className="font-medium text-gray-700">3.</span> Send files,
+                chat in real time, or start audio &amp; video calls
               </p>
               <p className="text-xs text-gray-400 pt-1">
-                Files are transferred directly and never stored on any server.
+                Everything is end-to-end encrypted and never stored on any
+                server.
               </p>
             </div>
 

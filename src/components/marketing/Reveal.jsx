@@ -5,17 +5,17 @@ import { useEffect, useRef, useState } from "react";
  * enter the viewport. Pure IntersectionObserver + CSS transition — no
  * animation libraries. Respects prefers-reduced-motion via CSS.
  */
-function Reveal({ as: Tag = "div", className = "", delay = 0, children, ...rest }) {
+function Reveal({ className = "", delay = 0, children, ...rest }) {
   const ref = useRef(null);
-  const [visible, setVisible] = useState(false);
+  // If IntersectionObserver is unavailable, show content immediately.
+  const [visible, setVisible] = useState(
+    () => typeof IntersectionObserver === "undefined",
+  );
 
   useEffect(() => {
     const node = ref.current;
-    if (!node) return;
-    if (typeof IntersectionObserver === "undefined") {
-      setVisible(true);
-      return;
-    }
+    if (!node || visible) return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry.isIntersecting) {
@@ -27,17 +27,17 @@ function Reveal({ as: Tag = "div", className = "", delay = 0, children, ...rest 
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
+  }, [visible]);
 
   return (
-    <Tag
+    <div
       ref={ref}
       className={`cw-reveal ${visible ? "is-visible" : ""} ${className}`}
       style={delay ? { transitionDelay: `${delay}ms` } : undefined}
       {...rest}
     >
       {children}
-    </Tag>
+    </div>
   );
 }
 

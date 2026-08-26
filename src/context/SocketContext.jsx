@@ -38,17 +38,28 @@ export const SocketProvider = ({ children }) => {
 
   // --- data channel routing & api --------------------------------------
   const incomingChatHandlerRef = useRef(null);
+  const routeBinaryCountRef = useRef(0);
 
   const routeIncomingData = useCallback((data) => {
     if (typeof data === "string") {
       try {
         const parsed = JSON.parse(data);
         if (parsed?.type === "chat") {
+          log.log(`route → chat (${data.length}B)`);
           incomingChatHandlerRef.current?.(parsed);
           return;
         }
+        log.log(`route → FileTransfer control "${parsed?.type}"`);
       } catch {
-        // not JSON — file transfer pipeline
+        log.error(`route → non-JSON text (${data.length}B): ${data.slice(0, 80)}`);
+      }
+    } else {
+      routeBinaryCountRef.current += 1;
+      const n = routeBinaryCountRef.current;
+      if (n === 1 || n % 50 === 0) {
+        log.log(
+          `route → binary #${n} (${data instanceof ArrayBuffer ? `${data.byteLength}B arraybuffer` : typeof data})`,
+        );
       }
     }
     dataChannelCallbackRef.current?.(data);

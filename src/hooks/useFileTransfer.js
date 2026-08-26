@@ -123,8 +123,11 @@ function useFileTransfer(friendEmail, user, peerDisconnected, peerEnded) {
 
   const handleComplete = useCallback(
     (msg) => {
-      clearTransferTimeout();
       const assembler = assemblerRef.current;
+      log.log(
+        `handleComplete ENTER | id=${assembler.id || "none"} | active=${assembler.active} | chunks=${assembler.chunks.length}/${assembler.meta?.totalChunks ?? "?"} | msg: ${JSON.stringify(msg).slice(0, 200)}`,
+      );
+      clearTransferTimeout();
       const id = assembler.id;
       const result = id ? assembler.finalize(msg) : { ok: false };
 
@@ -166,51 +169,83 @@ function useFileTransfer(friendEmail, user, peerDisconnected, peerEnded) {
     }
   }, [updateTransfer]);
 
+  /** Processes a binary chunk packet (ArrayBuffer). */
+  const processBinary = useCallback(
+    (buffer) => {
+      if (!(buffer instanceof ArrayBuffer)) return;
+      if (buffer.byteLength <= 9 || new DataView(buffer).getUint8(0) !== 0x01)
+        return;
+      if (!assemblerRef.current.id) return; // no active inbound transfer
+
+      const { chunkIndex, totalChunks } =
+        assemblerRef.current.pushChunk(buffer);
+      resetTransferTimeout();
+
+      // ~5%-stride console progress for large transfers
+      if (
+        chunkIndex % Math.max(1, Math.floor(totalChunks / 20)) === 0 ||
+        chunkIndex + 1 === totalChunks
+      ) {
+        log.log(
+          `Receive chunk ${chunkIndex + 1}/${totalChunks} (${Math.round(((chunkIndex + 1) / totalChunks) * 100)}%)`,
+        );
+      }
+
+      const now = Date.now();
+      const isLast = chunkIndex + 1 === totalChunks;
+      if (
+        now - lastProgressRenderRef.current >= PROGRESS_THROTTLE_MS ||
+        isLast
+      ) {
+        lastProgressRenderRef.current = now;
+        updateTransfer(assemblerRef.current.id, {
+          progress: Math.round(((chunkIndex + 1) / totalChunks) * 100),
+        });
+      }
+    },
+    [resetTransferTimeout, updateTransfer],
+  );
+
   const onMessage = useCallback(
     (data) => {
       try {
         if (typeof data === "string") {
-          const msg = JSON.parse(data);
+          let msg = null;
+          try {
+            msg = JSON.parse(data);
+          } catch {
+            log.error(
+              `onMessage: non-JSON text (${data.length}B): ${data.slice(0, 120)}`,
+            );
+            return;
+          }
+          log.log(`onMessage → control msg type="${msg.type}"`);
           if (msg.type === "metadata") handleMetadata(msg);
           else if (msg.type === "complete") handleComplete(msg);
           else if (msg.type === "cancel") handleCancelNotice();
+          else log.log(`onMessage → unhandled control type "${msg.type}"`);
           return;
         }
 
-        if (
-          data instanceof ArrayBuffer &&
-          data.byteLength > 9 &&
-          new DataView(data).getUint8(0) === 0x01
-        ) {
-          if (!assemblerRef.current.id) return; // no active inbound transfer
-
-          const { chunkIndex, totalChunks } =
-            assemblerRef.current.pushChunk(data);
-          resetTransferTimeout();
-
-          const now = Date.now();
-          const isLast = chunkIndex + 1 === totalChunks;
-          if (
-            now - lastProgressRenderRef.current >= PROGRESS_THROTTLE_MS ||
-            isLast
-          ) {
-            lastProgressRenderRef.current = now;
-            updateTransfer(assemblerRef.current.id, {
-              progress: Math.round(((chunkIndex + 1) / totalChunks) * 100),
-            });
-          }
+        // Some browsers deliver binary as Blob even with binaryType set —
+        // normalize to ArrayBuffer before processing.
+        if (typeof Blob !== "undefined" && data instanceof Blob) {
+          log.log(
+            `onMessage → BLOB ${data.size}B (normalizing to ArrayBuffer)`,
+          );
+          data
+            .arrayBuffer()
+            .then(processBinary)
+            .catch(() => {});
+          return;
         }
+
+        processBinary(data);
       } catch (err) {
         log.error("Error processing data channel message", err);
       }
     },
-    [
-      handleMetadata,
-      handleComplete,
-      handleCancelNotice,
-      resetTransferTimeout,
-      updateTransfer,
-    ],
+    [handleMetadata, handleComplete, handleCancelNotice, processBinary],
   );
 
   useEffect(() => {
@@ -235,6 +270,10 @@ function useFileTransfer(friendEmail, user, peerDisconnected, peerEnded) {
     async (file) => {
       if (!file || activeIdRef.current || assemblerRef.current.active)
         return false;
+      const dc = getDataChannel();
+      log.log(
+        `sendFile ENTER "${file.name}" (${(file.size / 1048576).toFixed(2)}MB) | dc=${dc ? `open=${dc.readyState} bufferedAmount=${dc.bufferedAmount}` : "null"} | maxMsgSize=${getMaxMessageSize?.() ?? "?"}`,
+      );
       if (!isDataChannelOpen()) {
         log.error("Data channel not open, cannot send");
         return false;
@@ -262,12 +301,14 @@ function useFileTransfer(friendEmail, user, peerDisconnected, peerEnded) {
       const result = await sendFilePipeline({
         file,
         controller,
-        dc: getDataChannel(),
+        dc,
         maxMsgSize: getMaxMessageSize?.(),
         send: sendDataViaWebRTC,
         onProgress: (pct) => updateTransfer(id, { progress: pct }),
         onChunkSent: resetTransferTimeout,
       });
+
+      log.log(`sendFile pipeline returned: ${result}`);
 
       clearTransferTimeout();
       activeIdRef.current = null;
